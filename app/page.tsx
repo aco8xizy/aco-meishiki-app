@@ -14,7 +14,6 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
 
-  // 簡易命式計算ロジック（十幹判定）
   const calculateElement = (dateStr: string) => {
     if (!dateStr) return "甲";
     const date = new Date(dateStr);
@@ -22,7 +21,6 @@ export default function Home() {
     const month = date.getMonth() + 1;
     const day = date.getDate();
     
-    // 日幹計算用の仮ロジック
     const elements = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"];
     const index = (year + month + day) % 10;
     return elements[index];
@@ -36,10 +34,8 @@ export default function Home() {
     }
 
     setLoading(true);
-
     const elementType = calculateElement(birthDate);
 
-    // 命式データ構造の作成
     const meishikiData = {
       tenchusatsu: "子丑",
       totalEnergy: 22,
@@ -50,25 +46,32 @@ export default function Home() {
       }
     };
 
-    // 💾 Supabaseにユーザーデータを自動登録
+    // 💾 Supabaseにユーザーデータを自動登録（400エラー対策済み）
     try {
       if (supabaseUrl && supabaseAnonKey) {
-        await supabase.from("users").insert([
-          {
-            name: name,
-            birth_date: birthDate,
-            birth_time: birthTime || null,
-            gender: gender,
-            element_type: elementType,
-            meishiki_data: meishikiData
-          }
-        ]);
+        const payload: any = {
+          name: name,
+          birth_date: birthDate,
+          gender: gender,
+          element_type: elementType,
+          meishiki_data: meishikiData
+        };
+
+        // 時間が入力されている場合のみ追加
+        if (birthTime) {
+          payload.birth_time = birthTime;
+        }
+
+        const { error } = await supabase.from("users").insert([payload]);
+        if (error) {
+          console.error("Supabase保存エラー詳細:", error);
+        }
       }
     } catch (err) {
-      console.error("データ保存エラー:", err);
+      console.error("送信時例外:", err);
     }
 
-    // Supabaseからマスターの解説文を取得
+    // マスター取得
     let masterInfo = null;
     try {
       if (supabaseUrl && supabaseAnonKey) {
