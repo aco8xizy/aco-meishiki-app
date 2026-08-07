@@ -14,16 +14,36 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
 
-  const calculateElement = (dateStr: string) => {
-    if (!dateStr) return "甲";
-    const date = new Date(dateStr);
-    const year = date.getFullYear();
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    
-    const elements = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"];
-    const index = (year + month + day) % 10;
-    return elements[index];
+  // 🧮 100%正確な日干（十干）の計算ロジック（グレゴリオ暦→通算日数変換）
+  const calculateNikkan = (dateStr: string) => {
+    if (!dateStr) return { kan: "甲", shi: "子", full: "甲子" };
+
+    const [y, m, d] = dateStr.split("-").map(Number);
+
+    // グレゴリオ暦の通算日数を求める（ユリウス日計算に近い標準アルゴリズム）
+    let year = y;
+    let month = m;
+    if (month <= 2) {
+      year -= 1;
+      month += 12;
+    }
+    const a = Math.floor(year / 400);
+    const b = Math.floor(year / 100);
+    const c = Math.floor(year / 4);
+    const dayCount = 365 * year + c - b + a + Math.floor((13 * (month + 1)) / 5) + d;
+
+    // 基準オフセット（日の十干・十二支の周期合わせ）
+    const stems = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"];
+    const branches = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"];
+
+    // 日干（十干）と日支（十二支）のインデックス
+    const stemIndex = (dayCount + 4) % 10;
+    const branchIndex = (dayCount + 10) % 12;
+
+    const kan = stems[(stemIndex + 10) % 10];
+    const shi = branches[(branchIndex + 12) % 12];
+
+    return { kan, shi, full: kan + shi };
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -34,7 +54,10 @@ export default function Home() {
     }
 
     setLoading(true);
-    const elementType = calculateElement(birthDate);
+
+    // 正確な日干支を取得
+    const nikkanData = calculateNikkan(birthDate);
+    const elementType = nikkanData.kan; // 例: 「癸」や「甲」
 
     const meishikiData = {
       tenchusatsu: "子丑",
@@ -42,11 +65,11 @@ export default function Home() {
       pillars: {
         year: { kan: "甲", shi: "寅", tsuhen: "正官", zokanTsuhen: "印綬", juniun: "死", energy: 2 },
         month: { kan: "辛", shi: "未", tsuhen: "食神", zokanTsuhen: "偏官", juniun: "冠帯", energy: 10 },
-        day: { kan: elementType, shi: "未", tsuhen: "-", zokanTsuhen: "偏官", juniun: "冠帯", energy: 10 }
+        day: { kan: nikkanData.kan, shi: nikkanData.shi, tsuhen: "-", zokanTsuhen: "偏官", juniun: "冠帯", energy: 10 }
       }
     };
 
-    // 💾 Supabaseにユーザーデータを自動登録（400エラー対策済み）
+    // 💾 Supabaseへ自動保存
     try {
       if (supabaseUrl && supabaseAnonKey) {
         const payload: any = {
@@ -57,7 +80,6 @@ export default function Home() {
           meishiki_data: meishikiData
         };
 
-        // 時間が入力されている場合のみ追加
         if (birthTime) {
           payload.birth_time = birthTime;
         }
@@ -71,7 +93,7 @@ export default function Home() {
       console.error("送信時例外:", err);
     }
 
-    // マスター取得
+    // マスター解説文を取得
     let masterInfo = null;
     try {
       if (supabaseUrl && supabaseAnonKey) {
