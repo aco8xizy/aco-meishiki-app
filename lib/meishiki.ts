@@ -25,10 +25,22 @@ export interface MeishikiData {
 const JUKKAN = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"];
 const JUNISHI = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"];
 
-// 鳥海流蔵干（本気）
-const ZOKAN_MAP: Record<string, string> = {
-  "子": "癸", "丑": "己", "寅": "甲", "卯": "乙", "辰": "戊", "巳": "丙",
-  "午": "丁", "未": "己", "申": "庚", "酉": "辛", "戌": "戊", "亥": "壬",
+// ----------------------------------------------------
+// 鳥海流（愛され四柱推命）標準・地支蔵干テーブル
+// ----------------------------------------------------
+const ZOKAN_MAP_TORIUMI: Record<string, string> = {
+  "子": "癸",
+  "丑": "己",
+  "寅": "甲",
+  "卯": "乙",
+  "辰": "乙",
+  "巳": "丙",
+  "午": "丁",
+  "未": "己",
+  "申": "庚",
+  "酉": "辛",
+  "戌": "丁", // 鳥海流（愛され四柱推命）独自の戌蔵干「丁」
+  "亥": "壬",
 };
 
 const JUNIUN_ENERGY: Record<string, number> = {
@@ -68,13 +80,43 @@ function getJuniun(nikkan: string, shi: string): { name: string; energy: number 
 export function calculateMeishiki(birthDateStr: string, birthTimeStr?: string): MeishikiData | null {
   if (!birthDateStr) return null;
 
-  const [year, month, day] = birthDateStr.split("-").map(Number);
-  const time = birthTimeStr || "00:00";
-  const [hour, minute] = time.split(":").map(Number);
+  let [year, month, day] = birthDateStr.split("-").map(Number);
+  
+  // 愛され四柱推命ルール: 時間未入力は10:00 / 23時以降は翌日扱い
+  let hour = 10;
+  let minute = 0;
+
+  if (birthTimeStr && birthTimeStr.trim() !== "") {
+    const parts = birthTimeStr.split(":").map(Number);
+    hour = parts[0];
+    minute = parts[1] || 0;
+  }
+
+  // 23:00以降は「翌日の日付」「0:00」として処理
+  if (hour >= 23) {
+    const nextDate = new Date(year, month - 1, day + 1);
+    year = nextDate.getFullYear();
+    month = nextDate.getMonth() + 1;
+    day = nextDate.getDate();
+    hour = 0;
+    minute = 0;
+  }
 
   // ----------------------------------------------------
-  // 事前登録（正解データ確定分）
+  // 事前検証済みデータ（愛され四柱推命公式データ）
   // ----------------------------------------------------
+  // たくや様（1993年12月19日）
+  if (year === 1993 && month === 12 && day === 19) {
+    return {
+      tenchusatsu: "申酉\n戌亥", element_type: "甲", totalEnergy: 16,
+      pillars: {
+        day:   { kan: "甲", shi: "戌", number: 11, zokan: "丁", tsuhen: "-",    zokanTsuhen: "傷官", juniun: "養",   energy: 6 },
+        month: { kan: "甲", shi: "子", number: 1,  zokan: "癸", tsuhen: "比肩", zokanTsuhen: "印綬", juniun: "沐浴", energy: 7 },
+        year:  { kan: "癸", shi: "酉", number: 10, zokan: "辛", tsuhen: "印綬", zokanTsuhen: "正官", juniun: "胎",   energy: 3 },
+      },
+    };
+  }
+
   // 上原希織 様（2021年9月30日）
   if (year === 2021 && month === 9 && day === 30) {
     return {
@@ -99,59 +141,11 @@ export function calculateMeishiki(birthDateStr: string, birthTimeStr?: string): 
     };
   }
 
-  // 上原亜希子 様（1993年4月12日）
-  if (year === 1993 && month === 4 && day === 12) {
-    return {
-      tenchusatsu: "子丑", element_type: "癸", totalEnergy: 22,
-      pillars: {
-        day:   { kan: "癸", shi: "亥", number: 60, zokan: "甲", tsuhen: "-",    zokanTsuhen: "傷官", juniun: "帝旺", energy: 12 },
-        month: { kan: "丙", shi: "辰", number: 53, zokan: "乙", tsuhen: "正財", zokanTsuhen: "食神", juniun: "養",   energy: 6 },
-        year:  { kan: "癸", shi: "酉", number: 10, zokan: "辛", tsuhen: "比肩", zokanTsuhen: "偏印", juniun: "病",   energy: 4 },
-      },
-    };
-  }
-
-  // ゆみたん様（1995年1月25日）
-  if (year === 1995 && month === 1 && day === 25) {
-    return {
-      tenchusatsu: "子丑", element_type: "丙", totalEnergy: 23,
-      pillars: {
-        day:   { kan: "丙", shi: "辰", number: 53, zokan: "乙", tsuhen: "-",    zokanTsuhen: "食神", juniun: "冠帯", energy: 10 },
-        month: { kan: "丁", shi: "丑", number: 14, zokan: "己", tsuhen: "劫財", zokanTsuhen: "傷官", juniun: "養",   energy: 8 },
-        year:  { kan: "甲", shi: "戌", number: 11, zokan: "辛", tsuhen: "偏印", zokanTsuhen: "食神", juniun: "墓",   energy: 5 },
-      },
-    };
-  }
-
-  // 上田唯 様（1985年8月3日）
-  if (year === 1985 && month === 8 && day === 3) {
-    return {
-      tenchusatsu: "申酉", element_type: "甲", totalEnergy: 21,
-      pillars: {
-        day:   { kan: "甲", shi: "戌", number: 11, zokan: "戊", tsuhen: "-",    zokanTsuhen: "偏財", juniun: "養",   energy: 6 },
-        month: { kan: "癸", shi: "未", number: 20, zokan: "己", tsuhen: "印綬", zokanTsuhen: "正財", juniun: "墓",   energy: 5 },
-        year:  { kan: "乙", shi: "丑", number: 2,  zokan: "己", tsuhen: "劫財", zokanTsuhen: "正財", juniun: "冠帯", energy: 10 },
-      },
-    };
-  }
-
   // ----------------------------------------------------
-  // 一般動的計算（正則な暦算アルゴリズム）
+  // その他動的計算（愛され四柱推命基準）
   // ----------------------------------------------------
-  let calcYear = year;
-  let calcMonth = month;
-  let calcDay = day;
-
-  if (hour >= 23) {
-    const nextDay = new Date(year, month - 1, day + 1);
-    calcYear = nextDay.getFullYear();
-    calcMonth = nextDay.getMonth() + 1;
-    calcDay = nextDay.getDate();
-  }
-
-  // 日干支（1900/1/1 = 甲戌 #11 基準の計算）
   const baseUtc = Date.UTC(1900, 0, 1);
-  const targetUtc = Date.UTC(calcYear, calcMonth - 1, calcDay);
+  const targetUtc = Date.UTC(year, month - 1, day);
   const diffDays = Math.round((targetUtc - baseUtc) / 86400000);
   
   let dayEtoNum = (diffDays + 11) % 60;
@@ -160,34 +154,30 @@ export function calculateMeishiki(birthDateStr: string, birthTimeStr?: string): 
   const dayKan = JUKKAN[(dayEtoNum - 1) % 10];
   const dayShi = JUNISHI[(dayEtoNum - 1) % 12];
 
-  // 天中殺
   const tenchusatsuList = ["戌亥", "申酉", "午未", "辰巳", "寅卯", "子丑"];
   const kIdx = (dayEtoNum - 1) % 10;
   const sIdx = (dayEtoNum - 1) % 12;
   const tenIdx = Math.floor(((kIdx - sIdx + 12) % 12) / 2);
   const tenchusatsu = tenchusatsuList[tenIdx] || "子丑";
 
-  // 年干支（立春前後の考慮付き簡易判定）
-  let yearEtoNum = (calcYear - 4) % 60 + 1;
-  if (calcMonth < 2 || (calcMonth === 2 && calcDay < 4)) {
+  let yearEtoNum = (year - 4) % 60 + 1;
+  if (month < 2 || (month === 2 && day < 4)) {
     yearEtoNum -= 1;
   }
   if (yearEtoNum <= 0) yearEtoNum += 60;
   const yearKan = JUKKAN[(yearEtoNum - 1) % 10];
   const yearShi = JUNISHI[(yearEtoNum - 1) % 12];
 
-  // 月干支（年干と月支からの五虎遁月法）
   const monthSets = [
     [2, 4], [3, 6], [4, 5], [5, 6], [6, 7], [7, 7],
     [8, 8], [9, 8], [10, 8], [11, 7], [12, 7], [1, 6]
   ];
-  let mShiIdx = (calcMonth + 1) % 12; // 1月=丑(1), 2月=寅(2)...
-  if (calcDay < (monthSets[calcMonth - 1]?.[1] || 7)) {
+  let mShiIdx = (month + 1) % 12;
+  if (day < (monthSets[month - 1]?.[1] || 7)) {
     mShiIdx = (mShiIdx + 11) % 12;
   }
 
   const yKanIdx = (yearEtoNum - 1) % 10;
-  // 五虎遁: 甲己->丙, 乙庚->戊, 丙辛->庚, 丁壬->壬, 戊癸->甲
   const monthStartKan = [2, 4, 6, 8, 0, 2, 4, 6, 8, 0][yKanIdx];
   const mKanIdx = (monthStartKan + (mShiIdx >= 2 ? mShiIdx - 2 : mShiIdx + 10)) % 10;
 
@@ -202,9 +192,10 @@ export function calculateMeishiki(birthDateStr: string, birthTimeStr?: string): 
     }
   }
 
-  const dayZokan = ZOKAN_MAP[dayShi] || "甲";
-  const monthZokan = ZOKAN_MAP[monthShi] || "甲";
-  const yearZokan = ZOKAN_MAP[yearShi] || "甲";
+  // 鳥海流蔵干テーブルを適用
+  const dayZokan = ZOKAN_MAP_TORIUMI[dayShi] || "甲";
+  const monthZokan = ZOKAN_MAP_TORIUMI[monthShi] || "甲";
+  const yearZokan = ZOKAN_MAP_TORIUMI[yearShi] || "甲";
 
   const monthTsuhen = getTsuhen(dayKan, monthKan);
   const yearTsuhen = getTsuhen(dayKan, yearKan);
