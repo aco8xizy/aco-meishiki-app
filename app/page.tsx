@@ -1,243 +1,118 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { calculateMeishiki } from "@/lib/meishiki";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<"users" | "masters">("users");
-  const [users, setUsers] = useState<any[]>([]);
-  const [masters, setMasters] = useState<any[]>([]);
-  const [selectedUser, setSelectedUser] = useState<any>(null);
-  const [editingMaster, setEditingMaster] = useState<any>(null);
+export default function Home() {
+  const [result, setResult] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    fetchUsers();
-    fetchMasters();
-  }, []);
-
-  const fetchUsers = async () => {
-    const { data } = await supabase.from("users").select("*").order("created_at", { ascending: false });
-    if (data) setUsers(data);
-  };
-
-  const fetchMasters = async () => {
-    const { data } = await supabase.from("element_masters").select("*").order("id");
-    if (data) setMasters(data);
-  };
-
-  const handleUpdateMaster = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!editingMaster) return;
-    const { error } = await supabase
-      .from("element_masters")
-      .update({
-        short_image: editingMaster.short_image,
-        description: editingMaster.description,
-      })
-      .eq("id", editingMaster.id);
+    setLoading(true);
+    
+    const formData = new FormData(e.currentTarget);
+    const name = formData.get("name") as string;
+    const birthDate = formData.get("birth_date") as string;
+    const birthTime = formData.get("birth_time") as string;
+    const gender = formData.get("gender") as string;
 
-    if (!error) {
-      alert(`${editingMaster.id} のマスター情報を更新しました！`);
-      setEditingMaster(null);
-      fetchMasters();
-    } else {
-      alert("更新に失敗しました");
-    }
+    const meishiki = calculateMeishiki(birthDate, birthTime);
+
+    const { data: masterData } = await supabase
+      .from("element_masters")
+      .select("*")
+      .eq("id", meishiki.nikkan)
+      .single();
+
+    await supabase.from("users").insert([
+      {
+        name,
+        birth_date: birthDate,
+        birth_time: birthTime || null,
+        gender,
+        element_type: meishiki.nikkan,
+        meishiki_data: meishiki,
+      },
+    ]);
+
+    setResult({
+      name,
+      meishiki,
+      master: masterData || {
+        id: meishiki.nikkan,
+        name_kana: "みずのと",
+        short_image: "雨・露・水滴のように静かに潤し恵みを与える優しさ",
+        description: "静かに深く周りを満たしていく温かい包容力を持っています。"
+      }
+    });
+    setLoading(false);
   };
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#1e1b2e", color: "#f3e8ff", fontFamily: "sans-serif" }}>
-      {/* ヘッダー */}
-      <header style={{ backgroundColor: "#2e1065", padding: "15px 30px", borderBottom: "1px solid #581c87", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 style={{ margin: 0, fontSize: "20px", color: "#fef08a" }}>🌙 あこ告 管理画面</h1>
-        <div>
-          <button
-            onClick={() => setActiveTab("users")}
-            style={{ padding: "8px 16px", marginRight: "10px", borderRadius: "6px", border: "none", backgroundColor: activeTab === "users" ? "#d97706" : "#4c1d95", color: "#fff", cursor: "pointer", fontWeight: "bold" }}
-          >
-            ユーザー一覧・命式
-          </button>
-          <button
-            onClick={() => setActiveTab("masters")}
-            style={{ padding: "8px 16px", borderRadius: "6px", border: "none", backgroundColor: activeTab === "masters" ? "#d97706" : "#4c1d95", color: "#fff", cursor: "pointer", fontWeight: "bold" }}
-          >
-            本質タイプマスター設定（甲〜癸）
+    <main style={{ minHeight: "100vh", backgroundColor: "#f4f1ea", padding: "40px 20px", fontFamily: "'Hiragino Mincho ProN', 'Yu Mincho', serif", color: "#2b332c", display: "flex", justifyContent: "center", alignItems: "center" }}>
+      {!result ? (
+        <form onSubmit={handleSubmit} style={{ width: "100%", maxWidth: "420px", backgroundColor: "#ffffff", padding: "35px 30px", borderRadius: "12px", border: "1px solid #e2ddd3", boxShadow: "0 10px 30px rgba(0,0,0,0.05)" }}>
+          <div style={{ textAlign: "center", marginBottom: "30px" }}>
+            <p style={{ letterSpacing: "0.15em", fontSize: "11px", color: "#6b7a6d", margin: "0 0 6px 0", textTransform: "uppercase" }}>Personal Diagnosis</p>
+            <h1 style={{ fontSize: "22px", color: "#2d4030", margin: 0, fontWeight: "500", letterSpacing: "0.05em" }}>本当の「ワタシ」を取り戻す診断</h1>
+            <div style={{ width: "40px", height: "1px", backgroundColor: "#2d4030", margin: "15px auto 0" }}></div>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+            <div>
+              <label style={{ fontSize: "12px", color: "#4a574c", display: "block", marginBottom: "6px", letterSpacing: "0.05em" }}>お名前</label>
+              <input name="name" required placeholder="山田 太郎" style={{ width: "100%", padding: "12px", borderRadius: "4px", border: "1px solid #d5cfc4", backgroundColor: "#faf9f6", color: "#2b332c", boxSizing: "border-box", fontSize: "14px", fontFamily: "sans-serif" }} />
+            </div>
+
+            <div>
+              <label style={{ fontSize: "12px", color: "#4a574c", display: "block", marginBottom: "6px", letterSpacing: "0.05em" }}>生年月日</label>
+              <input type="date" name="birth_date" required style={{ width: "100%", padding: "12px", borderRadius: "4px", border: "1px solid #d5cfc4", backgroundColor: "#faf9f6", color: "#2b332c", boxSizing: "border-box", fontSize: "14px", fontFamily: "sans-serif" }} />
+            </div>
+
+            <div>
+              <label style={{ fontSize: "12px", color: "#4a574c", display: "block", marginBottom: "6px", letterSpacing: "0.05em" }}>出生時間（分かれば）</label>
+              <input type="time" name="birth_time" style={{ width: "100%", padding: "12px", borderRadius: "4px", border: "1px solid #d5cfc4", backgroundColor: "#faf9f6", color: "#2b332c", boxSizing: "border-box", fontSize: "14px", fontFamily: "sans-serif" }} />
+            </div>
+
+            <div>
+              <label style={{ fontSize: "12px", color: "#4a574c", display: "block", marginBottom: "6px", letterSpacing: "0.05em" }}>性別</label>
+              <select name="gender" style={{ width: "100%", padding: "12px", borderRadius: "4px", border: "1px solid #d5cfc4", backgroundColor: "#faf9f6", color: "#2b332c", boxSizing: "border-box", fontSize: "14px", fontFamily: "sans-serif" }}>
+                <option value="女性">女性</option>
+                <option value="男性">男性</option>
+              </select>
+            </div>
+
+            <button type="submit" disabled={loading} style={{ marginTop: "10px", backgroundColor: "#2d4030", color: "#ffffff", padding: "14px", border: "none", borderRadius: "4px", fontSize: "15px", cursor: "pointer", letterSpacing: "0.1em", transition: "background 0.3s" }}>
+              {loading ? "診断中..." : "本質タイプを診断する ➔"}
+            </button>
+          </div>
+        </form>
+      ) : (
+        <div style={{ width: "100%", maxWidth: "450px", backgroundColor: "#ffffff", padding: "35px 30px", borderRadius: "12px", border: "1px solid #e2ddd3", boxShadow: "0 10px 30px rgba(0,0,0,0.05)" }}>
+          <p style={{ color: "#6b7a6d", margin: 0, textAlign: "center", fontSize: "13px", letterSpacing: "0.05em" }}>{result.name} 様の本質タイプ</p>
+          <h2 style={{ fontSize: "36px", color: "#2d4030", margin: "12px 0 4px 0", textAlign: "center", fontWeight: "500" }}>
+            【 {result.master.id} 】
+          </h2>
+          <p style={{ textAlign: "center", color: "#8a968b", fontSize: "13px", margin: "0 0 25px 0" }}>（{result.master.name_kana}）</p>
+
+          <div style={{ backgroundColor: "#faf9f6", padding: "20px", borderRadius: "8px", border: "1px solid #e8e4db", margin: "20px 0" }}>
+            <p style={{ color: "#2d4030", fontWeight: "600", fontSize: "13px", marginTop: 0, letterSpacing: "0.05em" }}>🌿 自然界のイメージ</p>
+            <p style={{ color: "#4a574c", fontSize: "13px", lineHeight: "1.7", margin: "6px 0 0 0", fontFamily: "sans-serif" }}>{result.master.short_image}</p>
+            <div style={{ width: "100%", height: "1px", backgroundColor: "#e8e4db", margin: "15px 0" }}></div>
+            <p style={{ color: "#2d4030", fontWeight: "600", fontSize: "13px", letterSpacing: "0.05em" }}>✨ メッセージ</p>
+            <p style={{ color: "#4a574c", fontSize: "13px", lineHeight: "1.8", whiteSpace: "pre-wrap", margin: "6px 0 0 0", fontFamily: "sans-serif" }}>{result.master.description}</p>
+          </div>
+
+          <button onClick={() => setResult(null)} style={{ width: "100%", padding: "12px", backgroundColor: "#faf9f6", border: "1px solid #d5cfc4", color: "#4a574c", borderRadius: "4px", cursor: "pointer", fontSize: "13px" }}>
+            もう一度診断する
           </button>
         </div>
-      </header>
-
-      <main style={{ padding: "30px", maxWidth: "1200px", margin: "0 auto" }}>
-        {/* ユーザー一覧 画面 */}
-        {activeTab === "users" && (
-          <div>
-            <h2 style={{ color: "#fef08a", marginBottom: "20px" }}>👥 診断登録ユーザー一覧 ({users.length}名)</h2>
-            <div style={{ display: "grid", gridTemplateColumns: selectedUser ? "1fr 1fr" : "1fr", gap: "20px" }}>
-              {/* 一覧テーブル */}
-              <div style={{ backgroundColor: "#2e1065", borderRadius: "10px", padding: "20px", border: "1px solid #581c87" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
-                  <thead>
-                    <tr style={{ borderBottom: "2px solid #581c87", color: "#c084fc" }}>
-                      <th style={{ padding: "10px" }}>お名前</th>
-                      <th style={{ padding: "10px" }}>生年月日</th>
-                      <th style={{ padding: "10px" }}>本質</th>
-                      <th style={{ padding: "10px" }}>操作</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.map((u) => (
-                      <tr key={u.id} style={{ borderBottom: "1px solid #3b0764" }}>
-                        <td style={{ padding: "10px", fontWeight: "bold" }}>{u.name}</td>
-                        <td style={{ padding: "10px" }}>{u.birth_date} {u.birth_time || ""}</td>
-                        <td style={{ padding: "10px", color: "#fef08a" }}>【{u.element_type}】</td>
-                        <td style={{ padding: "10px" }}>
-                          <button
-                            onClick={() => setSelectedUser(u)}
-                            style={{ backgroundColor: "#7e22ce", color: "#fff", border: "none", padding: "6px 12px", borderRadius: "4px", cursor: "pointer" }}
-                          >
-                            詳細・命式
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                    {users.length === 0 && (
-                      <tr>
-                        <td colSpan={4} style={{ textAlign: "center", padding: "20px", color: "#a855f7" }}>
-                          まだ診断データの登録がありません
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* ユーザー詳細 & 命式確認画面 */}
-              {selectedUser && (
-                <div style={{ backgroundColor: "#2e1065", borderRadius: "10px", padding: "20px", border: "2px solid #d97706" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <h3 style={{ margin: 0, color: "#fef08a" }}>📜 {selectedUser.name} 様の命式詳細</h3>
-                    <button onClick={() => setSelectedUser(null)} style={{ background: "none", border: "none", color: "#fff", cursor: "pointer" }}>✕ 閉じる</button>
-                  </div>
-
-                  <div style={{ marginTop: "15px", fontSize: "14px", lineHeight: "1.8", backgroundColor: "#3b0764", padding: "15px", borderRadius: "8px" }}>
-                    <p><strong>生年月日:</strong> {selectedUser.birth_date} ({selectedUser.birth_time || "時間不明"})</p>
-                    <p><strong>性別:</strong> {selectedUser.gender}</p>
-                    <p><strong>日幹（本質タイプ）:</strong> <span style={{ fontSize: "18px", color: "#fef08a" }}>【{selectedUser.element_type}】</span></p>
-                    <p><strong>天中殺:</strong> {selectedUser.meishiki_data?.tenchusatsu || "子丑"}</p>
-                    <p><strong>運勢エネルギー合計:</strong> {selectedUser.meishiki_data?.totalEnergy || 22}</p>
-                  </div>
-
-                  <h4 style={{ color: "#c084fc", marginTop: "20px" }}>🎴 命式表データ</h4>
-                  <div style={{ overflowX: "auto" }}>
-                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px", textAlign: "center", backgroundColor: "#3b0764" }}>
-                      <thead>
-                        <tr style={{ backgroundColor: "#4c1d95", color: "#fef08a" }}>
-                          <th>柱</th><th>十幹</th><th>十二支</th><th>通変星</th><th>蔵干通変星</th><th>十二運星</th><th>エネルギー</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr>
-                          <td>年柱</td>
-                          <td>{selectedUser.meishiki_data?.pillars?.year?.kan || "甲"}</td>
-                          <td>{selectedUser.meishiki_data?.pillars?.year?.shi || "寅"}</td>
-                          <td>{selectedUser.meishiki_data?.pillars?.year?.tsuhen || "正官"}</td>
-                          <td>{selectedUser.meishiki_data?.pillars?.year?.zokanTsuhen || "印綬"}</td>
-                          <td>{selectedUser.meishiki_data?.pillars?.year?.juniun || "死"}</td>
-                          <td>{selectedUser.meishiki_data?.pillars?.year?.energy || 2}</td>
-                        </tr>
-                        <tr>
-                          <td>月柱</td>
-                          <td>{selectedUser.meishiki_data?.pillars?.month?.kan || "辛"}</td>
-                          <td>{selectedUser.meishiki_data?.pillars?.month?.shi || "未"}</td>
-                          <td>{selectedUser.meishiki_data?.pillars?.month?.tsuhen || "食神"}</td>
-                          <td>{selectedUser.meishiki_data?.pillars?.month?.zokanTsuhen || "偏官"}</td>
-                          <td>{selectedUser.meishiki_data?.pillars?.month?.juniun || "冠帯"}</td>
-                          <td>{selectedUser.meishiki_data?.pillars?.month?.energy || 10}</td>
-                        </tr>
-                        <tr>
-                          <td>日柱</td>
-                          <td>{selectedUser.meishiki_data?.pillars?.day?.kan || "己"}</td>
-                          <td>{selectedUser.meishiki_data?.pillars?.day?.shi || "未"}</td>
-                          <td>-</td>
-                          <td>{selectedUser.meishiki_data?.pillars?.day?.zokanTsuhen || "偏官"}</td>
-                          <td>{selectedUser.meishiki_data?.pillars?.day?.juniun || "冠帯"}</td>
-                          <td>{selectedUser.meishiki_data?.pillars?.day?.energy || 10}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* 本質マスター設定 画面 */}
-        {activeTab === "masters" && (
-          <div>
-            <h2 style={{ color: "#fef08a", marginBottom: "20px" }}>✨ 本質タイプマスター編集（甲〜癸）</h2>
-            <p style={{ fontSize: "14px", color: "#c084fc", marginBottom: "20px" }}>
-              ここで編集した解説文やイメージテキストは、診断結果画面に即時反映されます。
-            </p>
-
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "20px" }}>
-              {masters.map((m) => (
-                <div key={m.id} style={{ backgroundColor: "#2e1065", borderRadius: "10px", padding: "20px", border: "1px solid #581c87" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <h3 style={{ margin: 0, fontSize: "24px", color: "#fef08a" }}>【 {m.id} 】<span style={{ fontSize: "14px", color: "#c084fc" }}>（{m.name_kana}）</span></h3>
-                    <button
-                      onClick={() => setEditingMaster(m)}
-                      style={{ backgroundColor: "#d97706", color: "#fff", border: "none", padding: "6px 12px", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}
-                    >
-                      編集
-                    </button>
-                  </div>
-                  <div style={{ marginTop: "15px", fontSize: "13px", color: "#e9d5ff" }}>
-                    <p><strong>イメージ:</strong> {m.short_image}</p>
-                    <p><strong>詳細解説:</strong> {m.description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* 編集モーダル */}
-            {editingMaster && (
-              <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.7)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 100 }}>
-                <form onSubmit={handleUpdateMaster} style={{ backgroundColor: "#2e1065", border: "2px solid #fef08a", borderRadius: "12px", padding: "30px", width: "90%", maxWidth: "500px" }}>
-                  <h3 style={{ color: "#fef08a", marginTop: 0 }}>【 {editingMaster.id} 】の文章を編集</h3>
-                  
-                  <div style={{ marginBottom: "15px" }}>
-                    <label style={{ display: "block", fontSize: "14px", marginBottom: "5px" }}>短いイメージ文</label>
-                    <input
-                      type="text"
-                      value={editingMaster.short_image || ""}
-                      onChange={(e) => setEditingMaster({ ...editingMaster, short_image: e.target.value })}
-                      style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #581c87", backgroundColor: "#1e1b2e", color: "#fff" }}
-                    />
-                  </div>
-
-                  <div style={{ marginBottom: "20px" }}>
-                    <label style={{ display: "block", fontSize: "14px", marginBottom: "5px" }}>詳細解説文（「あこ告」の世界観）</label>
-                    <textarea
-                      rows={5}
-                      value={editingMaster.description || ""}
-                      onChange={(e) => setEditingMaster({ ...editingMaster, description: e.target.value })}
-                      style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #581c87", backgroundColor: "#1e1b2e", color: "#fff" }}
-                    />
-                  </div>
-
-                  <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
-                    <button type="button" onClick={() => setEditingMaster(null)} style={{ padding: "10px 20px", borderRadius: "6px", border: "none", backgroundColor: "#4c1d95", color: "#fff", cursor: "pointer" }}>キャンセル</button>
-                    <button type="submit" style={{ padding: "10px 20px", borderRadius: "6px", border: "none", backgroundColor: "#d97706", color: "#fff", fontWeight: "bold", cursor: "pointer" }}>保存する</button>
-                  </div>
-                </form>
-              </div>
-            )}
-          </div>
-        )}
-      </main>
-    </div>
+      )}
+    </main>
   );
 }
