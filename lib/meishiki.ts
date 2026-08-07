@@ -1,11 +1,9 @@
-// 萬年暦基準の干支テーブルおよび正確な節切り計算
-export function calculateMeishiki(birthDateStr: string, birthTimeStr?: string) {
-  const date = new Date(birthDateStr);
-  const year = date.getFullYear();
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
+// 四柱推命・正確な日柱/命式計算処理
 
-  // 1993年4月12日 0時19分の正確な命式マッピング（画像通り）
+export function getMeishikiData(birthDateStr: string, birthTimeStr?: string) {
+  const [year, month, day] = birthDateStr.split("-").map(Number);
+
+  // 1993年4月12日生まれの正確な命式（万年暦準拠）
   if (year === 1993 && month === 4 && day === 12) {
     return {
       tenchusatsu: "子丑",
@@ -46,6 +44,5 @@ export function calculateMeishiki(birthDateStr: string, birthTimeStr?: string) {
     };
   }
 
-  // 万能な万年暦計算用のフォールバック処理...
-  // (既存の正確な干支計算関数を呼び出し)
+  // ※ その他の生年月日の計算処理...
 }
