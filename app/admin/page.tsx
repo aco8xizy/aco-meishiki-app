@@ -135,7 +135,7 @@ export default function AdminDashboard() {
                 </table>
               </div>
 
-              {/* 右側：画像通り完全再現（グリーン基調） */}
+              {/* 右側：命式表 */}
               {selectedUser && (
                 <div style={{ backgroundColor: "#ffffff", borderRadius: "8px", padding: "25px", border: "1px solid #d5cfc4", boxShadow: "0 4px 15px rgba(0,0,0,0.03)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
@@ -149,7 +149,7 @@ export default function AdminDashboard() {
                     {selectedUser.birth_time ? ` (${selectedUser.birth_time})` : ""} 生 {selectedUser.gender || "女性"}
                   </div>
 
-                  {/* 🖼️ 画像通りのセル構造・縦配列 */}
+                  {/* 🖼️ 命式表セル構造 */}
                   <div style={{ overflowX: "auto" }}>
                     <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "center", fontSize: "14px", border: "2px solid #a3b1a6" }}>
                       
@@ -165,10 +165,10 @@ export default function AdminDashboard() {
                       </thead>
 
                       <tbody>
-                        {/* 1. 干支（天中殺／日柱・月柱・年柱の干支／右端: 干支ラベル（2行分結合）） */}
+                        {/* 1. 干支 (天中殺はメイン表記のみ) */}
                         <tr>
                           <td style={{ border: "1px solid #a3b1a6", padding: "8px", verticalAlign: "middle" }}>
-                            <div>{selectedUser.meishiki_data?.tenchusatsu || "子丑"}</div>
+                            {selectedUser.meishiki_data?.tenchusatsu || "子丑"}
                           </td>
                           <td style={{ border: "1px solid #a3b1a6", padding: "8px", fontWeight: "bold", fontSize: "16px" }}>
                             {selectedUser.element_type || "癸"}{selectedUser.meishiki_data?.pillars?.day?.shi || "亥"}
@@ -184,9 +184,9 @@ export default function AdminDashboard() {
                           </td>
                         </tr>
 
-                        {/* 天中殺2行目（戌亥） & 干支番号 */}
+                        {/* 干支番号 */}
                         <tr>
-                          <td style={{ border: "1px solid #a3b1a6", padding: "6px", color: "#555" }}>戌亥</td>
+                          <td style={{ border: "1px solid #a3b1a6", padding: "6px" }}></td>
                           <td style={{ border: "1px solid #a3b1a6", padding: "6px" }}>60</td>
                           <td style={{ border: "1px solid #a3b1a6", padding: "6px" }}>53</td>
                           <td style={{ border: "1px solid #a3b1a6", padding: "6px" }}>10</td>
