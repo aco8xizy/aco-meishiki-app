@@ -135,7 +135,7 @@ export default function AdminDashboard() {
                 </table>
               </div>
 
-              {/* 右側：画像の命式デザイン再現エリア */}
+              {/* 右側：画像通りの縦並びデザイン */}
               {selectedUser && (
                 <div style={{ backgroundColor: "#ffffff", borderRadius: "8px", padding: "25px", border: "1px solid #d5cfc4", boxShadow: "0 4px 15px rgba(0,0,0,0.03)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
@@ -149,7 +149,7 @@ export default function AdminDashboard() {
                     {selectedUser.birth_time ? ` (${selectedUser.birth_time})` : ""} 生 {selectedUser.gender || "女性"}
                   </div>
 
-                  {/* 🖼️ 画像通りの命式テーブル配置 */}
+                  {/* 🖼️ 縦並び指定通りの命式テーブル */}
                   <div style={{ overflowX: "auto" }}>
                     <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "center", fontSize: "14px", border: "2px solid #888" }}>
                       
@@ -165,10 +165,11 @@ export default function AdminDashboard() {
                       </thead>
 
                       <tbody>
-                        {/* 1行目: 天中殺 / 干支 */}
+                        {/* 1. 干支 */}
                         <tr>
                           <td style={{ border: "1px solid #888", padding: "8px", verticalAlign: "middle" }}>
                             <div>{selectedUser.meishiki_data?.tenchusatsu || "子丑"}</div>
+                            <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>戌亥</div>
                           </td>
                           <td style={{ border: "1px solid #888", padding: "8px", fontWeight: "bold", fontSize: "16px" }}>
                             {selectedUser.element_type || "癸"}{selectedUser.meishiki_data?.pillars?.day?.shi || "亥"}
@@ -182,7 +183,7 @@ export default function AdminDashboard() {
                           <td style={{ border: "1px solid #888", backgroundColor: "#f8d7da", fontWeight: "bold", padding: "8px" }}>干支</td>
                         </tr>
 
-                        {/* 2行目: 干支番号 */}
+                        {/* 干支番号 */}
                         <tr>
                           <td style={{ border: "1px solid #888", backgroundColor: "#fafafa" }}></td>
                           <td style={{ border: "1px solid #888", padding: "6px" }}>60</td>
@@ -191,7 +192,7 @@ export default function AdminDashboard() {
                           <td style={{ border: "1px solid #888", backgroundColor: "#fafafa" }}></td>
                         </tr>
 
-                        {/* 3行目: 蔵干 */}
+                        {/* 2. 蔵干 */}
                         <tr>
                           <td style={{ border: "1px solid #888", backgroundColor: "#fafafa" }}></td>
                           <td style={{ border: "1px solid #888", padding: "8px", fontSize: "15px" }}>甲</td>
@@ -200,7 +201,7 @@ export default function AdminDashboard() {
                           <td style={{ border: "1px solid #888", backgroundColor: "#f8d7da", fontWeight: "bold", padding: "8px" }}>蔵干</td>
                         </tr>
 
-                        {/* 4行目: 通変星 */}
+                        {/* 通変星 */}
                         <tr>
                           <td style={{ border: "1px solid #888", backgroundColor: "#fafafa" }}></td>
                           <td style={{ border: "1px solid #888", padding: "8px", color: "#888" }}>-</td>
@@ -209,7 +210,7 @@ export default function AdminDashboard() {
                           <td style={{ border: "1px solid #888", backgroundColor: "#f8d7da", fontWeight: "bold", padding: "8px" }}>通変星</td>
                         </tr>
 
-                        {/* 5行目: 蔵干通変星 */}
+                        {/* 3. 蔵干通変星 */}
                         <tr>
                           <td style={{ border: "1px solid #888", backgroundColor: "#fafafa" }}></td>
                           <td style={{ border: "1px solid #888", padding: "8px" }}>{selectedUser.meishiki_data?.pillars?.day?.zokanTsuhen || "傷官"}</td>
@@ -218,7 +219,7 @@ export default function AdminDashboard() {
                           <td style={{ border: "1px solid #888", backgroundColor: "#f8d7da", fontWeight: "bold", padding: "8px" }}>蔵干通変星</td>
                         </tr>
 
-                        {/* 6行目: 十二運星 */}
+                        {/* 4. 十二運星 */}
                         <tr>
                           <td style={{ border: "1px solid #888", backgroundColor: "#fafafa" }}></td>
                           <td style={{ border: "1px solid #888", padding: "8px" }}>{selectedUser.meishiki_data?.pillars?.day?.juniun || "帝旺"}</td>
@@ -227,7 +228,7 @@ export default function AdminDashboard() {
                           <td style={{ border: "1px solid #888", backgroundColor: "#f8d7da", fontWeight: "bold", padding: "8px" }}>十二運星</td>
                         </tr>
 
-                        {/* 7行目: 運勢エネルギー */}
+                        {/* 5. 運勢エネルギー */}
                         <tr>
                           <td style={{ border: "1px solid #888", padding: "8px", fontWeight: "bold" }}>
                             {selectedUser.meishiki_data?.totalEnergy || 22}
