@@ -6,7 +6,6 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// 🔒 管理画面のパスワード（初期設定: aco2026）
 const ADMIN_PASSWORD = "aco2026"; 
 
 export default function AdminDashboard() {
@@ -125,7 +124,7 @@ export default function AdminDashboard() {
         {activeTab === "users" && (
           <div>
             <h2 style={{ color: "#2d4030", marginBottom: "20px", fontSize: "20px" }}>👥 診断登録ユーザー一覧 ({users.length}名)</h2>
-            <div style={{ display: "grid", gridTemplateColumns: selectedUser ? "1fr 1fr" : "1fr", gap: "25px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: selectedUser ? "1fr 1.2fr" : "1fr", gap: "25px" }}>
               <div style={{ backgroundColor: "#ffffff", borderRadius: "8px", padding: "20px", border: "1px solid #e2ddd3" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "14px" }}>
                   <thead>
@@ -140,7 +139,7 @@ export default function AdminDashboard() {
                     {users.map((u) => (
                       <tr key={u.id} style={{ borderBottom: "1px solid #f0ece1" }}>
                         <td style={{ padding: "12px 10px", fontWeight: "bold" }}>{u.name}</td>
-                        <td style={{ padding: "12px 10px", color: "#666" }}>{u.birth_date} {u.birth_time || ""}</td>
+                        <td style={{ padding: "12px 10px", color: "#666", fontSize: "13px" }}>{u.birth_date} {u.birth_time || ""}</td>
                         <td style={{ padding: "12px 10px", color: "#2d4030", fontWeight: "bold" }}>【{u.element_type}】</td>
                         <td style={{ padding: "12px 10px" }}>
                           <button
@@ -165,15 +164,62 @@ export default function AdminDashboard() {
 
               {selectedUser && (
                 <div style={{ backgroundColor: "#ffffff", borderRadius: "8px", padding: "25px", border: "1px solid #d5cfc4" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #e8e4db", paddingBottom: "12px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #e8e4db", paddingBottom: "12px", marginBottom: "15px" }}>
                     <h3 style={{ margin: 0, color: "#2d4030", fontSize: "18px" }}>📜 {selectedUser.name} 様の命式詳細</h3>
-                    <button onClick={() => setSelectedUser(null)} style={{ background: "none", border: "none", color: "#8a968b", cursor: "pointer", fontSize: "16px" }}>✕</button>
+                    <button onClick={() => setSelectedUser(null)} style={{ background: "none", border: "none", color: "#8a968b", cursor: "pointer", fontSize: "18px" }}>✕</button>
                   </div>
-                  <div style={{ marginTop: "15px", fontSize: "13px", lineHeight: "1.8", backgroundColor: "#faf9f6", padding: "15px", borderRadius: "6px" }}>
-                    <p style={{ margin: "4px 0" }}><strong>生年月日:</strong> {selectedUser.birth_date} ({selectedUser.birth_time || "時間不明"})</p>
-                    <p style={{ margin: "4px 0" }}><strong>性別:</strong> {selectedUser.gender}</p>
-                    <p style={{ margin: "4px 0" }}><strong>日幹:</strong> <span style={{ fontSize: "16px", color: "#2d4030", fontWeight: "bold" }}>【{selectedUser.element_type}】</span></p>
+                  
+                  <div style={{ fontSize: "13px", lineHeight: "1.8", backgroundColor: "#faf9f6", padding: "15px", borderRadius: "6px", marginBottom: "20px", border: "1px solid #f0ece1" }}>
+                    <p style={{ margin: "2px 0" }}><strong>生年月日:</strong> {selectedUser.birth_date} ({selectedUser.birth_time || "時間未入力"})</p>
+                    <p style={{ margin: "2px 0" }}><strong>性別:</strong> {selectedUser.gender || "女性"}</p>
+                    <p style={{ margin: "2px 0" }}><strong>日干（本質）:</strong> <span style={{ fontSize: "16px", color: "#2d4030", fontWeight: "bold" }}>【{selectedUser.element_type}】</span></p>
+                    <p style={{ margin: "2px 0" }}><strong>天中殺:</strong> {selectedUser.meishiki_data?.tenchusatsu || "子丑"}</p>
                   </div>
+
+                  {/* 📊 本格命式表 */}
+                  <h4 style={{ margin: "0 0 10px 0", color: "#2d4030", fontSize: "15px" }}>【 命式表 】</h4>
+                  <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "center", fontSize: "13px", backgroundColor: "#ffffff", border: "1px solid #d5cfc4" }}>
+                    <thead>
+                      <tr style={{ backgroundColor: "#2d4030", color: "#ffffff" }}>
+                        <th style={{ padding: "8px", border: "1px solid #d5cfc4", width: "25%" }}>項目</th>
+                        <th style={{ padding: "8px", border: "1px solid #d5cfc4", width: "25%" }}>年柱</th>
+                        <th style={{ padding: "8px", border: "1px solid #d5cfc4", width: "25%" }}>月柱</th>
+                        <th style={{ padding: "8px", border: "1px solid #d5cfc4", width: "25%" }}>日柱</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td style={{ padding: "8px", backgroundColor: "#faf9f6", fontWeight: "bold", border: "1px solid #d5cfc4" }}>主星（通変星）</td>
+                        <td style={{ padding: "8px", border: "1px solid #d5cfc4" }}>{selectedUser.meishiki_data?.pillars?.year?.tsuhen || "正官"}</td>
+                        <td style={{ padding: "8px", border: "1px solid #d5cfc4" }}>{selectedUser.meishiki_data?.pillars?.month?.tsuhen || "食神"}</td>
+                        <td style={{ padding: "8px", border: "1px solid #d5cfc4", backgroundColor: "#f5f2eb" }}>-</td>
+                      </tr>
+                      <tr>
+                        <td style={{ padding: "8px", backgroundColor: "#faf9f6", fontWeight: "bold", border: "1px solid #d5cfc4" }}>干支</td>
+                        <td style={{ padding: "8px", border: "1px solid #d5cfc4" }}>
+                          {selectedUser.meishiki_data?.pillars?.year?.kan || "甲"}{selectedUser.meishiki_data?.pillars?.year?.shi || "寅"}
+                        </td>
+                        <td style={{ padding: "8px", border: "1px solid #d5cfc4" }}>
+                          {selectedUser.meishiki_data?.pillars?.month?.kan || "辛"}{selectedUser.meishiki_data?.pillars?.month?.shi || "未"}
+                        </td>
+                        <td style={{ padding: "8px", border: "1px solid #d5cfc4", fontWeight: "bold", color: "#2d4030", backgroundColor: "#f5f2eb" }}>
+                          {selectedUser.element_type || "癸"}{selectedUser.meishiki_data?.pillars?.day?.shi || "未"}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style={{ padding: "8px", backgroundColor: "#faf9f6", fontWeight: "bold", border: "1px solid #d5cfc4" }}>蔵干通変星</td>
+                        <td style={{ padding: "8px", border: "1px solid #d5cfc4" }}>{selectedUser.meishiki_data?.pillars?.year?.zokanTsuhen || "印綬"}</td>
+                        <td style={{ padding: "8px", border: "1px solid #d5cfc4" }}>{selectedUser.meishiki_data?.pillars?.month?.zokanTsuhen || "偏官"}</td>
+                        <td style={{ padding: "8px", border: "1px solid #d5cfc4", backgroundColor: "#f5f2eb" }}>{selectedUser.meishiki_data?.pillars?.day?.zokanTsuhen || "偏官"}</td>
+                      </tr>
+                      <tr>
+                        <td style={{ padding: "8px", backgroundColor: "#faf9f6", fontWeight: "bold", border: "1px solid #d5cfc4" }}>十二運星</td>
+                        <td style={{ padding: "8px", border: "1px solid #d5cfc4" }}>{selectedUser.meishiki_data?.pillars?.year?.juniun || "死"}</td>
+                        <td style={{ padding: "8px", border: "1px solid #d5cfc4" }}>{selectedUser.meishiki_data?.pillars?.month?.juniun || "冠帯"}</td>
+                        <td style={{ padding: "8px", border: "1px solid #d5cfc4", backgroundColor: "#f5f2eb" }}>{selectedUser.meishiki_data?.pillars?.day?.juniun || "冠帯"}</td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
