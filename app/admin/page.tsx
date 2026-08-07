@@ -135,7 +135,7 @@ export default function AdminDashboard() {
                 </table>
               </div>
 
-              {/* 右側：画像通りの縦並びデザイン */}
+              {/* 右側：画像通り完全再現（グリーン基調） */}
               {selectedUser && (
                 <div style={{ backgroundColor: "#ffffff", borderRadius: "8px", padding: "25px", border: "1px solid #d5cfc4", boxShadow: "0 4px 15px rgba(0,0,0,0.03)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
@@ -143,100 +143,97 @@ export default function AdminDashboard() {
                     <button onClick={() => setSelectedUser(null)} style={{ background: "none", border: "none", color: "#8a968b", cursor: "pointer", fontSize: "20px" }}>✕</button>
                   </div>
 
-                  {/* ヘッダー情報（生年月日） */}
-                  <div style={{ backgroundColor: "#e2c2a4", color: "#333", textAlign: "center", padding: "10px", fontSize: "15px", fontWeight: "bold", borderRadius: "4px", marginBottom: "15px" }}>
+                  {/* 上部ヘッダー（生年月日） */}
+                  <div style={{ backgroundColor: "#e2ddd3", color: "#2d4030", textAlign: "center", padding: "10px", fontSize: "15px", fontWeight: "bold", borderRadius: "4px", marginBottom: "15px" }}>
                     {selectedUser.birth_date.replace(/-/g, "年 ").replace(/(\d+)-(\d+)/, "$1月 $2日")} 
                     {selectedUser.birth_time ? ` (${selectedUser.birth_time})` : ""} 生 {selectedUser.gender || "女性"}
                   </div>
 
-                  {/* 🖼️ 縦並び指定通りの命式テーブル */}
+                  {/* 🖼️ 画像通りのセル構造・縦配列 */}
                   <div style={{ overflowX: "auto" }}>
-                    <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "center", fontSize: "14px", border: "2px solid #888" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "center", fontSize: "14px", border: "2px solid #a3b1a6" }}>
                       
-                      {/* ピンクのヘッダー行 */}
+                      {/* グリーンヘッダー行 */}
                       <thead>
-                        <tr style={{ backgroundColor: "#f8d7da", color: "#333", height: "36px" }}>
-                          <th style={{ border: "1px solid #888", width: "20%" }}>天中殺</th>
-                          <th style={{ border: "1px solid #888", width: "22%" }}>日 柱</th>
-                          <th style={{ border: "1px solid #888", width: "22%" }}>月 柱</th>
-                          <th style={{ border: "1px solid #888", width: "22%" }}>年 柱</th>
-                          <th style={{ border: "1px solid #888", width: "14%", backgroundColor: "#f8d7da" }}></th>
+                        <tr style={{ backgroundColor: "#d8e2dc", color: "#2d4030", height: "36px" }}>
+                          <th style={{ border: "1px solid #a3b1a6", width: "20%" }}>天中殺</th>
+                          <th style={{ border: "1px solid #a3b1a6", width: "22%" }}>日 柱</th>
+                          <th style={{ border: "1px solid #a3b1a6", width: "22%" }}>月 柱</th>
+                          <th style={{ border: "1px solid #a3b1a6", width: "22%" }}>年 柱</th>
+                          <th style={{ border: "1px solid #a3b1a6", width: "14%", backgroundColor: "#d8e2dc" }}></th>
                         </tr>
                       </thead>
 
                       <tbody>
-                        {/* 1. 干支 */}
+                        {/* 1. 干支（天中殺／日柱・月柱・年柱の干支／右端: 干支ラベル（2行分結合）） */}
                         <tr>
-                          <td style={{ border: "1px solid #888", padding: "8px", verticalAlign: "middle" }}>
+                          <td style={{ border: "1px solid #a3b1a6", padding: "8px", verticalAlign: "middle" }}>
                             <div>{selectedUser.meishiki_data?.tenchusatsu || "子丑"}</div>
-                            <div style={{ fontSize: "12px", color: "#666", marginTop: "4px" }}>戌亥</div>
                           </td>
-                          <td style={{ border: "1px solid #888", padding: "8px", fontWeight: "bold", fontSize: "16px" }}>
+                          <td style={{ border: "1px solid #a3b1a6", padding: "8px", fontWeight: "bold", fontSize: "16px" }}>
                             {selectedUser.element_type || "癸"}{selectedUser.meishiki_data?.pillars?.day?.shi || "亥"}
                           </td>
-                          <td style={{ border: "1px solid #888", padding: "8px", fontSize: "16px" }}>
+                          <td style={{ border: "1px solid #a3b1a6", padding: "8px", fontSize: "16px" }}>
                             {selectedUser.meishiki_data?.pillars?.month?.kan || "丙"}{selectedUser.meishiki_data?.pillars?.month?.shi || "辰"}
                           </td>
-                          <td style={{ border: "1px solid #888", padding: "8px", fontSize: "16px" }}>
+                          <td style={{ border: "1px solid #a3b1a6", padding: "8px", fontSize: "16px" }}>
                             {selectedUser.meishiki_data?.pillars?.year?.kan || "癸"}{selectedUser.meishiki_data?.pillars?.year?.shi || "酉"}
                           </td>
-                          <td style={{ border: "1px solid #888", backgroundColor: "#f8d7da", fontWeight: "bold", padding: "8px" }}>干支</td>
+                          <td rowSpan={2} style={{ border: "1px solid #a3b1a6", backgroundColor: "#eef2ef", color: "#2d4030", fontWeight: "bold", padding: "8px", verticalAlign: "middle" }}>
+                            干支
+                          </td>
                         </tr>
 
-                        {/* 干支番号 */}
+                        {/* 天中殺2行目（戌亥） & 干支番号 */}
                         <tr>
-                          <td style={{ border: "1px solid #888", backgroundColor: "#fafafa" }}></td>
-                          <td style={{ border: "1px solid #888", padding: "6px" }}>60</td>
-                          <td style={{ border: "1px solid #888", padding: "6px" }}>53</td>
-                          <td style={{ border: "1px solid #888", padding: "6px" }}>10</td>
-                          <td style={{ border: "1px solid #888", backgroundColor: "#fafafa" }}></td>
+                          <td style={{ border: "1px solid #a3b1a6", padding: "6px", color: "#555" }}>戌亥</td>
+                          <td style={{ border: "1px solid #a3b1a6", padding: "6px" }}>60</td>
+                          <td style={{ border: "1px solid #a3b1a6", padding: "6px" }}>53</td>
+                          <td style={{ border: "1px solid #a3b1a6", padding: "6px" }}>10</td>
                         </tr>
 
                         {/* 2. 蔵干 */}
                         <tr>
-                          <td style={{ border: "1px solid #888", backgroundColor: "#fafafa" }}></td>
-                          <td style={{ border: "1px solid #888", padding: "8px", fontSize: "15px" }}>甲</td>
-                          <td style={{ border: "1px solid #888", padding: "8px", fontSize: "15px" }}>乙</td>
-                          <td style={{ border: "1px solid #888", padding: "8px", fontSize: "15px" }}>辛</td>
-                          <td style={{ border: "1px solid #888", backgroundColor: "#f8d7da", fontWeight: "bold", padding: "8px" }}>蔵干</td>
+                          <td rowSpan={4} style={{ border: "1px solid #a3b1a6", backgroundColor: "#fafafa" }}></td>
+                          <td style={{ border: "1px solid #a3b1a6", padding: "8px", fontSize: "15px" }}>甲</td>
+                          <td style={{ border: "1px solid #a3b1a6", padding: "8px", fontSize: "15px" }}>乙</td>
+                          <td style={{ border: "1px solid #a3b1a6", padding: "8px", fontSize: "15px" }}>辛</td>
+                          <td style={{ border: "1px solid #a3b1a6", backgroundColor: "#eef2ef", color: "#2d4030", fontWeight: "bold", padding: "8px" }}>蔵干</td>
                         </tr>
 
-                        {/* 通変星 */}
+                        {/* 3. 通変星 */}
                         <tr>
-                          <td style={{ border: "1px solid #888", backgroundColor: "#fafafa" }}></td>
-                          <td style={{ border: "1px solid #888", padding: "8px", color: "#888" }}>-</td>
-                          <td style={{ border: "1px solid #888", padding: "8px" }}>{selectedUser.meishiki_data?.pillars?.month?.tsuhen || "正財"}</td>
-                          <td style={{ border: "1px solid #888", padding: "8px" }}>{selectedUser.meishiki_data?.pillars?.year?.tsuhen || "比肩"}</td>
-                          <td style={{ border: "1px solid #888", backgroundColor: "#f8d7da", fontWeight: "bold", padding: "8px" }}>通変星</td>
+                          <td style={{ border: "1px solid #a3b1a6", padding: "8px", color: "#888" }}>-</td>
+                          <td style={{ border: "1px solid #a3b1a6", padding: "8px" }}>{selectedUser.meishiki_data?.pillars?.month?.tsuhen || "正財"}</td>
+                          <td style={{ border: "1px solid #a3b1a6", padding: "8px" }}>{selectedUser.meishiki_data?.pillars?.year?.tsuhen || "比肩"}</td>
+                          <td style={{ border: "1px solid #a3b1a6", backgroundColor: "#eef2ef", color: "#2d4030", fontWeight: "bold", padding: "8px" }}>通変星</td>
                         </tr>
 
-                        {/* 3. 蔵干通変星 */}
+                        {/* 4. 蔵干通変星 */}
                         <tr>
-                          <td style={{ border: "1px solid #888", backgroundColor: "#fafafa" }}></td>
-                          <td style={{ border: "1px solid #888", padding: "8px" }}>{selectedUser.meishiki_data?.pillars?.day?.zokanTsuhen || "傷官"}</td>
-                          <td style={{ border: "1px solid #888", padding: "8px" }}>{selectedUser.meishiki_data?.pillars?.month?.zokanTsuhen || "食神"}</td>
-                          <td style={{ border: "1px solid #888", padding: "8px" }}>{selectedUser.meishiki_data?.pillars?.year?.zokanTsuhen || "偏印"}</td>
-                          <td style={{ border: "1px solid #888", backgroundColor: "#f8d7da", fontWeight: "bold", padding: "8px" }}>蔵干通変星</td>
+                          <td style={{ border: "1px solid #a3b1a6", padding: "8px" }}>{selectedUser.meishiki_data?.pillars?.day?.zokanTsuhen || "傷官"}</td>
+                          <td style={{ border: "1px solid #a3b1a6", padding: "8px" }}>{selectedUser.meishiki_data?.pillars?.month?.zokanTsuhen || "食神"}</td>
+                          <td style={{ border: "1px solid #a3b1a6", padding: "8px" }}>{selectedUser.meishiki_data?.pillars?.year?.zokanTsuhen || "偏印"}</td>
+                          <td style={{ border: "1px solid #a3b1a6", backgroundColor: "#eef2ef", color: "#2d4030", fontWeight: "bold", padding: "8px" }}>蔵干通変星</td>
                         </tr>
 
-                        {/* 4. 十二運星 */}
+                        {/* 5. 十二運星 */}
                         <tr>
-                          <td style={{ border: "1px solid #888", backgroundColor: "#fafafa" }}></td>
-                          <td style={{ border: "1px solid #888", padding: "8px" }}>{selectedUser.meishiki_data?.pillars?.day?.juniun || "帝旺"}</td>
-                          <td style={{ border: "1px solid #888", padding: "8px" }}>{selectedUser.meishiki_data?.pillars?.month?.juniun || "養"}</td>
-                          <td style={{ border: "1px solid #888", padding: "8px" }}>{selectedUser.meishiki_data?.pillars?.year?.juniun || "病"}</td>
-                          <td style={{ border: "1px solid #888", backgroundColor: "#f8d7da", fontWeight: "bold", padding: "8px" }}>十二運星</td>
+                          <td style={{ border: "1px solid #a3b1a6", padding: "8px" }}>{selectedUser.meishiki_data?.pillars?.day?.juniun || "帝旺"}</td>
+                          <td style={{ border: "1px solid #a3b1a6", padding: "8px" }}>{selectedUser.meishiki_data?.pillars?.month?.juniun || "養"}</td>
+                          <td style={{ border: "1px solid #a3b1a6", padding: "8px" }}>{selectedUser.meishiki_data?.pillars?.year?.juniun || "病"}</td>
+                          <td style={{ border: "1px solid #a3b1a6", backgroundColor: "#eef2ef", color: "#2d4030", fontWeight: "bold", padding: "8px" }}>十二運星</td>
                         </tr>
 
-                        {/* 5. 運勢エネルギー */}
+                        {/* 6. 運勢エネルギー */}
                         <tr>
-                          <td style={{ border: "1px solid #888", padding: "8px", fontWeight: "bold" }}>
+                          <td style={{ border: "1px solid #a3b1a6", padding: "8px", fontWeight: "bold" }}>
                             {selectedUser.meishiki_data?.totalEnergy || 22}
                           </td>
-                          <td style={{ border: "1px solid #888", padding: "8px" }}>{selectedUser.meishiki_data?.pillars?.day?.energy || 12}</td>
-                          <td style={{ border: "1px solid #888", padding: "8px" }}>{selectedUser.meishiki_data?.pillars?.month?.energy || 6}</td>
-                          <td style={{ border: "1px solid #888", padding: "8px" }}>{selectedUser.meishiki_data?.pillars?.year?.energy || 4}</td>
-                          <td style={{ border: "1px solid #888", backgroundColor: "#f8d7da", fontWeight: "bold", padding: "8px", fontSize: "12px" }}>運勢エネルギー</td>
+                          <td style={{ border: "1px solid #a3b1a6", padding: "8px" }}>{selectedUser.meishiki_data?.pillars?.day?.energy || 12}</td>
+                          <td style={{ border: "1px solid #a3b1a6", padding: "8px" }}>{selectedUser.meishiki_data?.pillars?.month?.energy || 6}</td>
+                          <td style={{ border: "1px solid #a3b1a6", padding: "8px" }}>{selectedUser.meishiki_data?.pillars?.year?.energy || 4}</td>
+                          <td style={{ border: "1px solid #a3b1a6", backgroundColor: "#eef2ef", color: "#2d4030", fontWeight: "bold", padding: "8px", fontSize: "11px" }}>運勢エネルギー</td>
                         </tr>
 
                       </tbody>
