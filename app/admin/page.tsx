@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { calculateMeishiki } from "@/lib/meishiki";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
@@ -18,6 +19,7 @@ export default function AdminDashboard() {
   const [masters, setMasters] = useState<any[]>([]);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [editingMaster, setEditingMaster] = useState<any>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -62,6 +64,68 @@ export default function AdminDashboard() {
     } else {
       alert("削除に失敗しました: " + error.message);
     }
+  };
+
+  // 🔄 個別ユーザーの命式を最新ロジックで再計算・更新
+  const handleRecalculateSingleUser = async (user: any) => {
+    const confirmRecalc = window.confirm(`「${user.name}」様の命式を最新の計算ロジックで再計算・更新しますか？`);
+    if (!confirmRecalc) return;
+
+    const newMeishiki = calculateMeishiki(user.birth_date, user.birth_time);
+    if (!newMeishiki) {
+      alert("命式計算に失敗しました。生年月日を確認してください。");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("users")
+      .update({
+        element_type: newMeishiki.element_type,
+        meishiki_data: newMeishiki,
+      })
+      .eq("id", user.id);
+
+    if (!error) {
+      alert(`「${user.name}」様の命式を【${newMeishiki.element_type}】に更新しました！`);
+      fetchUsers();
+      if (selectedUser?.id === user.id) {
+        setSelectedUser({
+          ...user,
+          element_type: newMeishiki.element_type,
+          meishiki_data: newMeishiki,
+        });
+      }
+    } else {
+      alert("更新に失敗しました: " + error.message);
+    }
+  };
+
+  // 🔄🔄 全ユーザーの命式を一括再計算・一括更新
+  const handleRecalculateAllUsers = async () => {
+    const confirmAll = window.confirm(`登録されている全 ${users.length} 名の命式を最新ロジックで一括再計算しますか？\n（※既存のデータが上書きされます）`);
+    if (!confirmAll) return;
+
+    setIsUpdating(true);
+    let successCount = 0;
+
+    for (const u of users) {
+      const newMeishiki = calculateMeishiki(u.birth_date, u.birth_time);
+      if (newMeishiki) {
+        const { error } = await supabase
+          .from("users")
+          .update({
+            element_type: newMeishiki.element_type,
+            meishiki_data: newMeishiki,
+          })
+          .eq("id", u.id);
+        if (!error) successCount++;
+      }
+    }
+
+    setIsUpdating(false);
+    alert(`全 ${users.length} 名中 ${successCount} 名の命式を一括更新しました！`);
+    fetchUsers();
+    setSelectedUser(null);
   };
 
   const handleUpdateMaster = async (e: React.FormEvent) => {
@@ -121,8 +185,27 @@ export default function AdminDashboard() {
       <main style={{ padding: "30px", maxWidth: "1280px", margin: "0 auto" }}>
         {activeTab === "users" && (
           <div>
-            <h2 style={{ color: "#2d4030", marginBottom: "20px", fontSize: "20px" }}>👥 診断登録ユーザー一覧 ({users.length}名)</h2>
-            <div style={{ display: "grid", gridTemplateColumns: selectedUser ? "420px 1fr" : "1fr", gap: "20px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+              <h2 style={{ color: "#2d4030", margin: 0, fontSize: "20px" }}>👥 診断登録ユーザー一覧 ({users.length}名)</h2>
+              <button
+                onClick={handleRecalculateAllUsers}
+                disabled={isUpdating}
+                style={{
+                  backgroundColor: "#34495e",
+                  color: "#ffffff",
+                  border: "none",
+                  padding: "9px 16px",
+                  borderRadius: "6px",
+                  cursor: isUpdating ? "not-allowed" : "pointer",
+                  fontSize: "13px",
+                  fontWeight: "bold",
+                }}
+              >
+                {isUpdating ? "更新中..." : "🔄 全ユーザーの命式を一括再計算"}
+              </button>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: selectedUser ? "460px 1fr" : "1fr", gap: "20px" }}>
               
               {/* 左側：ユーザーリスト */}
               <div style={{ backgroundColor: "#ffffff", borderRadius: "8px", padding: "20px", border: "1px solid #e2ddd3", height: "fit-content" }}>
@@ -141,13 +224,18 @@ export default function AdminDashboard() {
                           {u.name}
                           <div style={{ fontSize: "11px", color: "#888", fontWeight: "normal" }}>{u.birth_date}</div>
                         </td>
-                        <td style={{ padding: "10px 6px", color: "#2d4030", fontWeight: "bold" }}>【{u.element_type || "癸"}】</td>
+                        <td style={{ padding: "10px 6px", color: "#2d4030", fontWeight: "bold" }}>
+                          【{u.element_type || u.meishiki_data?.pillars?.day?.kan || "癸"}】
+                        </td>
                         <td style={{ padding: "10px 6px", textAlign: "center" }}>
-                          <div style={{ display: "flex", gap: "6px", justifyContent: "center" }}>
-                            <button onClick={() => setSelectedUser(u)} style={{ backgroundColor: "#2d4030", color: "#fff", border: "none", padding: "5px 9px", borderRadius: "4px", cursor: "pointer", fontSize: "12px" }}>
+                          <div style={{ display: "flex", gap: "4px", justifyContent: "center" }}>
+                            <button onClick={() => setSelectedUser(u)} style={{ backgroundColor: "#2d4030", color: "#fff", border: "none", padding: "5px 8px", borderRadius: "4px", cursor: "pointer", fontSize: "11px" }}>
                               命式
                             </button>
-                            <button onClick={() => handleDeleteUser(u)} style={{ backgroundColor: "#c0392b", color: "#fff", border: "none", padding: "5px 9px", borderRadius: "4px", cursor: "pointer", fontSize: "12px" }}>
+                            <button onClick={() => handleRecalculateSingleUser(u)} title="個別再計算" style={{ backgroundColor: "#2980b9", color: "#fff", border: "none", padding: "5px 8px", borderRadius: "4px", cursor: "pointer", fontSize: "11px" }}>
+                              再計算
+                            </button>
+                            <button onClick={() => handleDeleteUser(u)} style={{ backgroundColor: "#c0392b", color: "#fff", border: "none", padding: "5px 8px", borderRadius: "4px", cursor: "pointer", fontSize: "11px" }}>
                               削除
                             </button>
                           </div>
@@ -163,7 +251,12 @@ export default function AdminDashboard() {
                 <div style={{ backgroundColor: "#ffffff", borderRadius: "8px", padding: "25px", border: "1px solid #d5cfc4", boxShadow: "0 4px 15px rgba(0,0,0,0.03)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
                     <h3 style={{ margin: 0, color: "#2d4030", fontSize: "18px" }}>📜 {selectedUser.name} 様の命式</h3>
-                    <button onClick={() => setSelectedUser(null)} style={{ background: "none", border: "none", color: "#8a968b", cursor: "pointer", fontSize: "20px" }}>✕</button>
+                    <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                      <button onClick={() => handleRecalculateSingleUser(selectedUser)} style={{ backgroundColor: "#2980b9", color: "#fff", border: "none", padding: "6px 12px", borderRadius: "4px", cursor: "pointer", fontSize: "12px" }}>
+                        🔄 この人の命式を再計算
+                      </button>
+                      <button onClick={() => setSelectedUser(null)} style={{ background: "none", border: "none", color: "#8a968b", cursor: "pointer", fontSize: "20px" }}>✕</button>
+                    </div>
                   </div>
 
                   {/* 生年月日ヘッダー */}
@@ -172,10 +265,9 @@ export default function AdminDashboard() {
                     {selectedUser.birth_time ? ` (${selectedUser.birth_time})` : ""} 生 {selectedUser.gender || "女性"}
                   </div>
 
-                  {/* 命式表構造（画像完全一致） */}
+                  {/* 命式表構造 */}
                   <div style={{ overflowX: "auto" }}>
                     <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "center", fontSize: "14px", border: "2px solid #a3b1a6" }}>
-                      
                       <thead>
                         <tr style={{ backgroundColor: "#d8e2dc", color: "#2d4030", height: "36px" }}>
                           <th style={{ border: "1px solid #a3b1a6", width: "20%" }}>天中殺</th>
@@ -185,15 +277,14 @@ export default function AdminDashboard() {
                           <th style={{ border: "1px solid #a3b1a6", width: "14%", backgroundColor: "#d8e2dc" }}></th>
                         </tr>
                       </thead>
-
                       <tbody>
                         {/* 干支 */}
                         <tr>
                           <td style={{ border: "1px solid #a3b1a6", padding: "10px", fontSize: "15px" }}>
                             {selectedUser.meishiki_data?.tenchusatsu || "子丑"}
                           </td>
-                          <td style={{ border: "1px solid #a3b1a6", padding: "10px", fontWeight: "bold", fontSize: "16px" }}>
-                            {selectedUser.meishiki_data?.pillars?.day?.kan || selectedUser.element_type || "癸"}{selectedUser.meishiki_data?.pillars?.day?.shi || "亥"}
+                          <td style={{ border: "1px solid #a3b1a6", padding: "10px", fontWeight: "bold", fontSize: "16px", color: "#1b4d3e" }}>
+                            {selectedUser.meishiki_data?.pillars?.day?.kan || "癸"}{selectedUser.meishiki_data?.pillars?.day?.shi || "亥"}
                           </td>
                           <td style={{ border: "1px solid #a3b1a6", padding: "10px", fontSize: "16px" }}>
                             {selectedUser.meishiki_data?.pillars?.month?.kan || "丙"}{selectedUser.meishiki_data?.pillars?.month?.shi || "辰"}
@@ -254,7 +345,6 @@ export default function AdminDashboard() {
                           <td style={{ border: "1px solid #a3b1a6", padding: "8px" }}>{selectedUser.meishiki_data?.pillars?.year?.energy || 4}</td>
                           <td style={{ border: "1px solid #a3b1a6", backgroundColor: "#eef2ef", color: "#2d4030", fontWeight: "bold", padding: "8px", fontSize: "11px" }}>運勢エネルギー</td>
                         </tr>
-
                       </tbody>
                     </table>
                   </div>
