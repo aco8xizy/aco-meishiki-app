@@ -6,7 +6,14 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// 🔒 管理画面のパスワード（自由に変更してください）
+const ADMIN_PASSWORD = "akuxiku82"; 
+
 export default function AdminDashboard() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
+
   const [activeTab, setActiveTab] = useState<"users" | "masters">("users");
   const [users, setUsers] = useState<any[]>([]);
   const [masters, setMasters] = useState<any[]>([]);
@@ -14,9 +21,22 @@ export default function AdminDashboard() {
   const [editingMaster, setEditingMaster] = useState<any>(null);
 
   useEffect(() => {
-    fetchUsers();
-    fetchMasters();
-  }, []);
+    // ログイン済みの場合のみデータを取得
+    if (isAuthenticated) {
+      fetchUsers();
+      fetchMasters();
+    }
+  }, [isAuthenticated]);
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordInput === ADMIN_PASSWORD) {
+      setIsAuthenticated(true);
+      setErrorMsg("");
+    } else {
+      setErrorMsg("パスワードが違います");
+    }
+  };
 
   const fetchUsers = async () => {
     const { data } = await supabase.from("users").select("*").order("created_at", { ascending: false });
@@ -48,6 +68,33 @@ export default function AdminDashboard() {
     }
   };
 
+  // 🔒 未認証（ログイン前）の画面表示
+  if (!isAuthenticated) {
+    return (
+      <div style={{ minHeight: "100vh", backgroundColor: "#f4f1ea", display: "flex", justifyContent: "center", alignItems: "center", fontFamily: "'Hiragino Mincho ProN', 'Yu Mincho', serif" }}>
+        <form onSubmit={handleLogin} style={{ backgroundColor: "#ffffff", padding: "40px 30px", borderRadius: "12px", boxShadow: "0 4px 20px rgba(0,0,0,0.06)", border: "1px solid #e2ddd3", textAlign: "center", width: "90%", maxWidth: "360px" }}>
+          <span style={{ fontSize: "10px", color: "#6b7a6d", letterSpacing: "0.15em", display: "block", marginBottom: "5px" }}>RESTRICTED AREA</span>
+          <h2 style={{ margin: "0 0 20px 0", color: "#2d4030", fontSize: "18px", fontWeight: "500" }}>あこ告 管理画面ログイン</h2>
+          
+          <input
+            type="password"
+            placeholder="パスワードを入力"
+            value={passwordInput}
+            onChange={(e) => setPasswordInput(e.target.value)}
+            style={{ width: "100%", padding: "12px", borderRadius: "6px", border: "1px solid #d5cfc4", backgroundColor: "#faf9f6", fontSize: "14px", boxSizing: "border-box", marginBottom: "15px", textAlign: "center", outline: "none" }}
+          />
+
+          {errorMsg && <p style={{ color: "#c0392b", fontSize: "12px", margin: "-5px 0 15px 0", fontFamily: "sans-serif" }}>{errorMsg}</p>}
+
+          <button type="submit" style={{ width: "100%", padding: "12px", backgroundColor: "#2d4030", color: "#ffffff", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "14px", fontWeight: "bold" }}>
+            ログイン
+          </button>
+        </form>
+      </div>
+    );
+  }
+
+  // 🔓 認証成功後の管理画面（以前と同じ画面）
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#f4f1ea", color: "#2b332c", fontFamily: "'Hiragino Mincho ProN', 'Yu Mincho', serif" }}>
       {/* ヘッダー */}
@@ -65,9 +112,15 @@ export default function AdminDashboard() {
           </button>
           <button
             onClick={() => setActiveTab("masters")}
-            style={{ padding: "8px 18px", borderRadius: "4px", border: "1px solid #2d4030", backgroundColor: activeTab === "masters" ? "#2d4030" : "#ffffff", color: activeTab === "masters" ? "#ffffff" : "#2d4030", cursor: "pointer", fontSize: "13px" }}
+            style={{ padding: "8px 18px", marginRight: "15px", borderRadius: "4px", border: "1px solid #2d4030", backgroundColor: activeTab === "masters" ? "#2d4030" : "#ffffff", color: activeTab === "masters" ? "#ffffff" : "#2d4030", cursor: "pointer", fontSize: "13px" }}
           >
             本質タイプマスター設定
+          </button>
+          <button
+            onClick={() => setIsAuthenticated(false)}
+            style={{ padding: "8px 12px", borderRadius: "4px", border: "none", backgroundColor: "#e8e4db", color: "#6b7a6d", cursor: "pointer", fontSize: "12px" }}
+          >
+            ログアウト
           </button>
         </div>
       </header>
@@ -78,7 +131,6 @@ export default function AdminDashboard() {
           <div>
             <h2 style={{ color: "#2d4030", marginBottom: "20px", fontSize: "20px", fontWeight: "500" }}>👥 診断登録ユーザー一覧 ({users.length}名)</h2>
             <div style={{ display: "grid", gridTemplateColumns: selectedUser ? "1fr 1fr" : "1fr", gap: "25px" }}>
-              {/* 一覧テーブル */}
               <div style={{ backgroundColor: "#ffffff", borderRadius: "8px", padding: "20px", border: "1px solid #e2ddd3", boxShadow: "0 4px 15px rgba(0,0,0,0.03)", fontFamily: "sans-serif" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "14px" }}>
                   <thead>
@@ -116,7 +168,6 @@ export default function AdminDashboard() {
                 </table>
               </div>
 
-              {/* ユーザー詳細 & 命式確認画面 */}
               {selectedUser && (
                 <div style={{ backgroundColor: "#ffffff", borderRadius: "8px", padding: "25px", border: "1px solid #d5cfc4", boxShadow: "0 4px 15px rgba(0,0,0,0.05)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #e8e4db", paddingBottom: "12px" }}>
@@ -205,7 +256,6 @@ export default function AdminDashboard() {
               ))}
             </div>
 
-            {/* 編集モーダル */}
             {editingMaster && (
               <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.4)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 100 }}>
                 <form onSubmit={handleUpdateMaster} style={{ backgroundColor: "#ffffff", border: "1px solid #d5cfc4", borderRadius: "8px", padding: "30px", width: "90%", maxWidth: "500px", boxShadow: "0 10px 30px rgba(0,0,0,0.1)" }}>
