@@ -49,8 +49,8 @@ const JUNIUN_TABLE: Record<string, Record<string, string>> = {
   "癸": { "子":"建禄", "丑":"冠帯", "寅":"沐浴", "卯":"長生", "辰":"養", "巳":"胎", "午":"絶", "未":"墓", "申":"死", "酉":"病", "戌":"衰", "亥":"帝旺" },
 };
 
-// 節入り概算日（各月：2月〜1月）
-const SETSUIRI_DAYS = [4, 6, 5, 5, 6, 7, 7, 8, 8, 8, 7, 5];
+// 節入り概算日（1月〜12月: 小寒, 立春, 啓蟄, 清明, 立夏, 芒種, 小暑, 立秋, 白露, 寒露, 立冬, 大雪）
+const SETSUIRI_DAYS = [6, 4, 6, 5, 6, 6, 7, 8, 8, 8, 7, 7];
 
 function getTsuhen(baseKan: string, targetKan: string): string {
   const kanMap: Record<string, number> = { "甲":0, "乙":1, "丙":2, "丁":3, "戊":4, "己":5, "庚":6, "辛":7, "壬":8, "癸":9 };
@@ -88,7 +88,7 @@ export function calculateMeishiki(birthDateStr: string, birthTimeStr?: string): 
   }
 
   // ----------------------------------------------------
-  // 1. 日干支（ユリウス日による精密干支算出）
+  // 1. 日干支（ユリウス日による計算）
   // ----------------------------------------------------
   const a = Math.floor((14 - month) / 12);
   const y = year + 4800 - a;
@@ -111,10 +111,8 @@ export function calculateMeishiki(birthDateStr: string, birthTimeStr?: string): 
   // ----------------------------------------------------
   // 2. 年干支（立春判定）
   // ----------------------------------------------------
-  let isBeforeRisshun = false;
-  if (month < 2 || (month === 2 && day < SETSUIRI_DAYS[0])) {
-    isBeforeRisshun = true;
-  }
+  const risshunDay = SETSUIRI_DAYS[1]; // 2月4日頃
+  let isBeforeRisshun = (month < 2) || (month === 2 && day < risshunDay);
 
   let yearEtoYear = isBeforeRisshun ? year - 1 : year;
   let yearEtoNum = (yearEtoYear - 4) % 60 + 1;
@@ -124,25 +122,32 @@ export function calculateMeishiki(birthDateStr: string, birthTimeStr?: string): 
   const yearShi = JUNISHI[(yearEtoNum - 1) % 12];
 
   // ----------------------------------------------------
-  // 3. 月干支（五虎遁月法・節入り判定）
+  // 3. 月干支（節入り判定・五虎遁月法）
   // ----------------------------------------------------
-  let setsuiDay = SETSUIRI_DAYS[month - 1] || 7;
-  let mShiIdx = month; // 1月=丑(1), 2月=寅(2)...
-  if (day < setsuiDay) {
-    mShiIdx = month - 1;
-  }
-  if (mShiIdx < 1) mShiIdx += 12;
-
-  const yKanIdx = (yearEtoNum - 1) % 10;
-  // 五虎遁: 甲己->丙寅, 乙庚->戊寅, 丙辛->庚寅, 丁壬->壬寅, 戊癸->甲寅
-  const monthStartKan = [2, 4, 6, 8, 0, 2, 4, 6, 8, 0][yKanIdx];
+  const setsuiDay = SETSUIRI_DAYS[month - 1];
   
-  // 寅月（mShiIdx = 2）を基準として月干を計算
-  let offset = mShiIdx - 2;
-  if (offset < 0) offset += 12;
+  // 節入り前なら前の月として計算
+  let lunarMonth = month;
+  if (day < setsuiDay) {
+    lunarMonth = month - 1;
+    if (lunarMonth < 1) lunarMonth = 12;
+  }
 
-  const monthKan = JUKKAN[(monthStartKan + offset) % 10];
-  const monthShi = JUNISHI[mShiIdx % 12];
+  // 月支のインデックス（寅月=1月節, 卯月=2月節, 辰月=3月節...）
+  // 辰月（4月18日）は lunarMonth = 4 ➔ shiIndex = (4 + 1) % 12 = 5 ('辰'はインデックス4)
+  // 月支順序: 1月節=寅(2), 2月節=卯(3), 3月節=辰(4), 4月節=巳(5)... 12月節=丑(1)
+  const monthShiArray = ["丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥", "子"];
+  const monthShi = monthShiArray[lunarMonth - 1] || "辰";
+
+  // 五虎遁（年干の十干から月干を導く）
+  // 甲己年➔丙寅..., 乙庚年➔戊寅..., 丙辛年➔庚寅..., 丁壬年➔壬寅..., 戊癸年➔甲寅...
+  const yKanIdx = (yearEtoNum - 1) % 10;
+  const monthStartKanMap = [2, 4, 6, 8, 0, 2, 4, 6, 8, 0]; // 丙, 戊, 庚, 壬, 甲
+  const startKanIdx = monthStartKanMap[yKanIdx];
+
+  // 寅月(lunarMonth=2に相当)からのオフセット
+  let monthOffset = (lunarMonth === 1) ? 11 : (lunarMonth - 2);
+  const monthKan = JUKKAN[(startKanIdx + monthOffset) % 10];
 
   let monthEtoNum = 1;
   for (let i = 1; i <= 60; i++) {
@@ -153,7 +158,7 @@ export function calculateMeishiki(birthDateStr: string, birthTimeStr?: string): 
   }
 
   // ----------------------------------------------------
-  // 4. 蔵干・通変星・十二運星（鳥海流準拠）
+  // 4. 蔵干・通変星・十二運星（鳥海流）
   // ----------------------------------------------------
   const dayZokan = ZOKAN_MAP_TORIUMI[dayShi] || "甲";
   const monthZokan = ZOKAN_MAP_TORIUMI[monthShi] || "甲";
