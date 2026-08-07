@@ -98,7 +98,7 @@ export default function Home() {
           <h2 style={{ fontSize: "40px", color: "#fef08a", margin: "15px 0", textAlign: "center" }}>
             【 {result.master.id} 】
           </h2>
-          <p style={{ textAlign: "center", color: "#e9d5ff", fontSize: "14px", marginTop="-10px" }}>（{result.master.name_kana}）</p>
+          <p style={{ textAlign: "center", color: "#e9d5ff", fontSize: "14px", marginTop: "-10px" }}>（{result.master.name_kana}）</p>
 
           <div style={{ backgroundColor: "#1e1b2e", padding: "20px", borderRadius: "10px", border: "1px solid #581c87", margin: "20px 0" }}>
             <p style={{ color: "#fef08a", fontWeight: "bold", fontSize: "14px", marginTop: 0 }}>🌙 自然界のイメージ</p>
