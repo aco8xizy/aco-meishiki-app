@@ -259,9 +259,12 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  {/* 生年月日ヘッダー */}
+              {/* 生年月日ヘッダー */}
                   <div style={{ backgroundColor: "#e2ddd3", color: "#2d4030", textAlign: "center", padding: "10px", fontSize: "15px", fontWeight: "bold", borderRadius: "4px", marginBottom: "15px" }}>
-                    {selectedUser.birth_date.replace(/-/g, "年 ").replace(/(\d+)-(\d+)/, "$1月 $2日")} 
+                    {(() => {
+                      const [y, m, d] = selectedUser.birth_date.split("-");
+                      return `${y}年 ${m}月 ${d}日`;
+                    })()} 
                     {selectedUser.birth_time ? ` (${selectedUser.birth_time})` : ""} 生 {selectedUser.gender || "女性"}
                   </div>
 
