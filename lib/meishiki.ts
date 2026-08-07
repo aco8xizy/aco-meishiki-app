@@ -25,22 +25,10 @@ export interface MeishikiData {
 const JUKKAN = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"];
 const JUNISHI = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"];
 
-// ----------------------------------------------------
-// 鳥海流（愛され四柱推命）標準・地支蔵干テーブル
-// ----------------------------------------------------
+// 鳥海流（愛され四柱推命）蔵干（本気）テーブル
 const ZOKAN_MAP_TORIUMI: Record<string, string> = {
-  "子": "癸",
-  "丑": "己",
-  "寅": "甲",
-  "卯": "乙",
-  "辰": "乙",
-  "巳": "丙",
-  "午": "丁",
-  "未": "己",
-  "申": "庚",
-  "酉": "辛",
-  "戌": "丁", // 鳥海流（愛され四柱推命）独自の戌蔵干「丁」
-  "亥": "壬",
+  "子": "癸", "丑": "己", "寅": "甲", "卯": "乙", "辰": "戊", "巳": "丙",
+  "午": "丁", "未": "己", "申": "庚", "酉": "辛", "戌": "戊", "亥": "壬",
 };
 
 const JUNIUN_ENERGY: Record<string, number> = {
@@ -60,6 +48,9 @@ const JUNIUN_TABLE: Record<string, Record<string, string>> = {
   "壬": { "子":"帝旺", "丑":"衰", "寅":"病", "卯":"死", "辰":"墓", "巳":"絶", "午":"胎", "未":"養", "申":"長生", "酉":"沐浴", "戌":"冠帯", "亥":"建禄" },
   "癸": { "子":"建禄", "丑":"冠帯", "寅":"沐浴", "卯":"長生", "辰":"養", "巳":"胎", "午":"絶", "未":"墓", "申":"死", "酉":"病", "戌":"衰", "亥":"帝旺" },
 };
+
+// 節入り概算日（各月：2月〜1月）
+const SETSUIRI_DAYS = [4, 6, 5, 5, 6, 7, 7, 8, 8, 8, 7, 5];
 
 function getTsuhen(baseKan: string, targetKan: string): string {
   const kanMap: Record<string, number> = { "甲":0, "乙":1, "丙":2, "丁":3, "戊":4, "己":5, "庚":6, "辛":7, "壬":8, "癸":9 };
@@ -81,108 +72,77 @@ export function calculateMeishiki(birthDateStr: string, birthTimeStr?: string): 
   if (!birthDateStr) return null;
 
   let [year, month, day] = birthDateStr.split("-").map(Number);
-  
-  // 愛され四柱推命ルール: 時間未入力は10:00 / 23時以降は翌日扱い
   let hour = 10;
-  let minute = 0;
 
   if (birthTimeStr && birthTimeStr.trim() !== "") {
     const parts = birthTimeStr.split(":").map(Number);
-    hour = parts[0];
-    minute = parts[1] || 0;
+    if (!isNaN(parts[0])) hour = parts[0];
   }
 
-  // 23:00以降は「翌日の日付」「0:00」として処理
+  // 愛され四柱推命ルール：23時以降は翌日扱い
   if (hour >= 23) {
     const nextDate = new Date(year, month - 1, day + 1);
     year = nextDate.getFullYear();
     month = nextDate.getMonth() + 1;
     day = nextDate.getDate();
-    hour = 0;
-    minute = 0;
   }
 
   // ----------------------------------------------------
-  // 事前検証済みデータ（愛され四柱推命公式データ）
+  // 1. 日干支（ユリウス日による精密干支算出）
   // ----------------------------------------------------
-  // たくや様（1993年12月19日）
-  if (year === 1993 && month === 12 && day === 19) {
-    return {
-      tenchusatsu: "申酉\n戌亥", element_type: "甲", totalEnergy: 16,
-      pillars: {
-        day:   { kan: "甲", shi: "戌", number: 11, zokan: "丁", tsuhen: "-",    zokanTsuhen: "傷官", juniun: "養",   energy: 6 },
-        month: { kan: "甲", shi: "子", number: 1,  zokan: "癸", tsuhen: "比肩", zokanTsuhen: "印綬", juniun: "沐浴", energy: 7 },
-        year:  { kan: "癸", shi: "酉", number: 10, zokan: "辛", tsuhen: "印綬", zokanTsuhen: "正官", juniun: "胎",   energy: 3 },
-      },
-    };
-  }
-
-  // 上原希織 様（2021年9月30日）
-  if (year === 2021 && month === 9 && day === 30) {
-    return {
-      tenchusatsu: "申酉", element_type: "辛", totalEnergy: 18,
-      pillars: {
-        day:   { kan: "辛", shi: "巳", number: 18, zokan: "丙", tsuhen: "-",    zokanTsuhen: "正官", juniun: "死",   energy: 2 },
-        month: { kan: "丁", shi: "酉", number: 34, zokan: "辛", tsuhen: "偏官", zokanTsuhen: "比肩", juniun: "建禄", energy: 11 },
-        year:  { kan: "辛", shi: "丑", number: 38, zokan: "己", tsuhen: "比肩", zokanTsuhen: "偏印", juniun: "養",   energy: 5 },
-      },
-    };
-  }
-
-  // 上原創也 様（2019年8月26日）
-  if (year === 2019 && month === 8 && day === 26) {
-    return {
-      tenchusatsu: "辰巳", element_type: "乙", totalEnergy: 11,
-      pillars: {
-        day:   { kan: "乙", shi: "未", number: 32, zokan: "己", tsuhen: "-",    zokanTsuhen: "偏財", juniun: "養",   energy: 6 },
-        month: { kan: "壬", shi: "申", number: 9,  zokan: "庚", tsuhen: "印綬", zokanTsuhen: "正官", juniun: "胎",   energy: 3 },
-        year:  { kan: "己", shi: "亥", number: 36, zokan: "壬", tsuhen: "偏財", zokanTsuhen: "印綬", juniun: "死",   energy: 2 },
-      },
-    };
-  }
-
-  // ----------------------------------------------------
-  // その他動的計算（愛され四柱推命基準）
-  // ----------------------------------------------------
-  const baseUtc = Date.UTC(1900, 0, 1);
-  const targetUtc = Date.UTC(year, month - 1, day);
-  const diffDays = Math.round((targetUtc - baseUtc) / 86400000);
+  const a = Math.floor((14 - month) / 12);
+  const y = year + 4800 - a;
+  const m = month + 12 * a - 3;
+  const julianDay = day + Math.floor((153 * m + 2) / 5) + 365 * y + Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) - 32045;
   
-  let dayEtoNum = (diffDays + 11) % 60;
+  let dayEtoNum = (julianDay + 49) % 60;
   if (dayEtoNum <= 0) dayEtoNum += 60;
 
   const dayKan = JUKKAN[(dayEtoNum - 1) % 10];
   const dayShi = JUNISHI[(dayEtoNum - 1) % 12];
 
+  // 天中殺
   const tenchusatsuList = ["戌亥", "申酉", "午未", "辰巳", "寅卯", "子丑"];
   const kIdx = (dayEtoNum - 1) % 10;
   const sIdx = (dayEtoNum - 1) % 12;
   const tenIdx = Math.floor(((kIdx - sIdx + 12) % 12) / 2);
   const tenchusatsu = tenchusatsuList[tenIdx] || "子丑";
 
-  let yearEtoNum = (year - 4) % 60 + 1;
-  if (month < 2 || (month === 2 && day < 4)) {
-    yearEtoNum -= 1;
+  // ----------------------------------------------------
+  // 2. 年干支（立春判定）
+  // ----------------------------------------------------
+  let isBeforeRisshun = false;
+  if (month < 2 || (month === 2 && day < SETSUIRI_DAYS[0])) {
+    isBeforeRisshun = true;
   }
+
+  let yearEtoYear = isBeforeRisshun ? year - 1 : year;
+  let yearEtoNum = (yearEtoYear - 4) % 60 + 1;
   if (yearEtoNum <= 0) yearEtoNum += 60;
+
   const yearKan = JUKKAN[(yearEtoNum - 1) % 10];
   const yearShi = JUNISHI[(yearEtoNum - 1) % 12];
 
-  const monthSets = [
-    [2, 4], [3, 6], [4, 5], [5, 6], [6, 7], [7, 7],
-    [8, 8], [9, 8], [10, 8], [11, 7], [12, 7], [1, 6]
-  ];
-  let mShiIdx = (month + 1) % 12;
-  if (day < (monthSets[month - 1]?.[1] || 7)) {
-    mShiIdx = (mShiIdx + 11) % 12;
+  // ----------------------------------------------------
+  // 3. 月干支（五虎遁月法・節入り判定）
+  // ----------------------------------------------------
+  let setsuiDay = SETSUIRI_DAYS[month - 1] || 7;
+  let mShiIdx = month; // 1月=丑(1), 2月=寅(2)...
+  if (day < setsuiDay) {
+    mShiIdx = month - 1;
   }
+  if (mShiIdx < 1) mShiIdx += 12;
 
   const yKanIdx = (yearEtoNum - 1) % 10;
+  // 五虎遁: 甲己->丙寅, 乙庚->戊寅, 丙辛->庚寅, 丁壬->壬寅, 戊癸->甲寅
   const monthStartKan = [2, 4, 6, 8, 0, 2, 4, 6, 8, 0][yKanIdx];
-  const mKanIdx = (monthStartKan + (mShiIdx >= 2 ? mShiIdx - 2 : mShiIdx + 10)) % 10;
+  
+  // 寅月（mShiIdx = 2）を基準として月干を計算
+  let offset = mShiIdx - 2;
+  if (offset < 0) offset += 12;
 
-  const monthKan = JUKKAN[mKanIdx];
-  const monthShi = JUNISHI[mShiIdx];
+  const monthKan = JUKKAN[(monthStartKan + offset) % 10];
+  const monthShi = JUNISHI[mShiIdx % 12];
 
   let monthEtoNum = 1;
   for (let i = 1; i <= 60; i++) {
@@ -192,7 +152,9 @@ export function calculateMeishiki(birthDateStr: string, birthTimeStr?: string): 
     }
   }
 
-  // 鳥海流蔵干テーブルを適用
+  // ----------------------------------------------------
+  // 4. 蔵干・通変星・十二運星（鳥海流準拠）
+  // ----------------------------------------------------
   const dayZokan = ZOKAN_MAP_TORIUMI[dayShi] || "甲";
   const monthZokan = ZOKAN_MAP_TORIUMI[monthShi] || "甲";
   const yearZokan = ZOKAN_MAP_TORIUMI[yearShi] || "甲";
