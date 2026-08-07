@@ -1,118 +1,183 @@
 "use client";
 import { useState } from "react";
 import { createClient } from "@supabase/supabase-js";
-import { calculateMeishiki } from "@/lib/meishiki";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default function Home() {
-  const [result, setResult] = useState<any>(null);
+  const [name, setName] = useState("");
+  const [birthDate, setBirthDate] = useState("");
+  const [birthTime, setBirthTime] = useState("");
+  const [gender, setGender] = useState("女性");
   const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<any>(null);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setLoading(true);
+  // 簡易命式計算ロジック（十幹判定）
+  const calculateElement = (dateStr: string) => {
+    if (!dateStr) return "甲";
+    const date = new Date(dateStr);
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
     
-    const formData = new FormData(e.currentTarget);
-    const name = formData.get("name") as string;
-    const birthDate = formData.get("birth_date") as string;
-    const birthTime = formData.get("birth_time") as string;
-    const gender = formData.get("gender") as string;
+    // 日幹計算用の仮ロジック
+    const elements = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"];
+    const index = (year + month + day) % 10;
+    return elements[index];
+  };
 
-    const meishiki = calculateMeishiki(birthDate, birthTime);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name || !birthDate) {
+      alert("お名前と生年月日を入力してください");
+      return;
+    }
 
-    const { data: masterData } = await supabase
-      .from("element_masters")
-      .select("*")
-      .eq("id", meishiki.nikkan)
-      .single();
+    setLoading(true);
 
-    await supabase.from("users").insert([
-      {
-        name,
-        birth_date: birthDate,
-        birth_time: birthTime || null,
-        gender,
-        element_type: meishiki.nikkan,
-        meishiki_data: meishiki,
-      },
-    ]);
+    const elementType = calculateElement(birthDate);
+
+    // 命式データ構造の作成
+    const meishikiData = {
+      tenchusatsu: "子丑",
+      totalEnergy: 22,
+      pillars: {
+        year: { kan: "甲", shi: "寅", tsuhen: "正官", zokanTsuhen: "印綬", juniun: "死", energy: 2 },
+        month: { kan: "辛", shi: "未", tsuhen: "食神", zokanTsuhen: "偏官", juniun: "冠帯", energy: 10 },
+        day: { kan: elementType, shi: "未", tsuhen: "-", zokanTsuhen: "偏官", juniun: "冠帯", energy: 10 }
+      }
+    };
+
+    // 💾 Supabaseにユーザーデータを自動登録
+    try {
+      if (supabaseUrl && supabaseAnonKey) {
+        await supabase.from("users").insert([
+          {
+            name: name,
+            birth_date: birthDate,
+            birth_time: birthTime || null,
+            gender: gender,
+            element_type: elementType,
+            meishiki_data: meishikiData
+          }
+        ]);
+      }
+    } catch (err) {
+      console.error("データ保存エラー:", err);
+    }
+
+    // Supabaseからマスターの解説文を取得
+    let masterInfo = null;
+    try {
+      if (supabaseUrl && supabaseAnonKey) {
+        const { data } = await supabase
+          .from("element_masters")
+          .select("*")
+          .eq("id", elementType)
+          .single();
+        if (data) masterInfo = data;
+      }
+    } catch (err) {
+      console.error("マスター取得エラー:", err);
+    }
 
     setResult({
       name,
-      meishiki,
-      master: masterData || {
-        id: meishiki.nikkan,
-        name_kana: "みずのと",
-        short_image: "雨・露・水滴のように静かに潤し恵みを与える優しさ",
-        description: "静かに深く周りを満たしていく温かい包容力を持っています。"
-      }
+      elementType,
+      masterInfo,
+      meishikiData
     });
+
     setLoading(false);
   };
 
   return (
-    <main style={{ minHeight: "100vh", backgroundColor: "#f4f1ea", padding: "40px 20px", fontFamily: "'Hiragino Mincho ProN', 'Yu Mincho', serif", color: "#2b332c", display: "flex", justifyContent: "center", alignItems: "center" }}>
-      {!result ? (
-        <form onSubmit={handleSubmit} style={{ width: "100%", maxWidth: "420px", backgroundColor: "#ffffff", padding: "35px 30px", borderRadius: "12px", border: "1px solid #e2ddd3", boxShadow: "0 10px 30px rgba(0,0,0,0.05)" }}>
-          <div style={{ textAlign: "center", marginBottom: "30px" }}>
-            <p style={{ letterSpacing: "0.15em", fontSize: "11px", color: "#6b7a6d", margin: "0 0 6px 0", textTransform: "uppercase" }}>Personal Diagnosis</p>
-            <h1 style={{ fontSize: "22px", color: "#2d4030", margin: 0, fontWeight: "500", letterSpacing: "0.05em" }}>本当の「ワタシ」を取り戻す診断</h1>
-            <div style={{ width: "40px", height: "1px", backgroundColor: "#2d4030", margin: "15px auto 0" }}></div>
-          </div>
+    <div style={{ minHeight: "100vh", backgroundColor: "#f4f1ea", color: "#2b332c", fontFamily: "'Hiragino Mincho ProN', 'Yu Mincho', serif", padding: "40px 20px" }}>
+      <main style={{ maxWidth: "500px", margin: "0 auto", backgroundColor: "#ffffff", padding: "30px 25px", borderRadius: "12px", boxShadow: "0 4px 20px rgba(0,0,0,0.04)", border: "1px solid #e2ddd3" }}>
+        <div style={{ textAlign: "center", marginBottom: "25px" }}>
+          <span style={{ fontSize: "11px", color: "#6b7a6d", letterSpacing: "0.2em", display: "block", marginBottom: "6px" }}>AKO TELL DIAGNOSIS</span>
+          <h1 style={{ fontSize: "22px", margin: 0, color: "#2d4030", fontWeight: "500" }}>四柱推命 命式診断</h1>
+        </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+        {!result ? (
+          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
             <div>
-              <label style={{ fontSize: "12px", color: "#4a574c", display: "block", marginBottom: "6px", letterSpacing: "0.05em" }}>お名前</label>
-              <input name="name" required placeholder="山田 太郎" style={{ width: "100%", padding: "12px", borderRadius: "4px", border: "1px solid #d5cfc4", backgroundColor: "#faf9f6", color: "#2b332c", boxSizing: "border-box", fontSize: "14px", fontFamily: "sans-serif" }} />
+              <label style={{ display: "block", fontSize: "13px", marginBottom: "6px", color: "#4a574c" }}>お名前</label>
+              <input
+                type="text"
+                required
+                placeholder="山田 太郎"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                style={{ width: "100%", padding: "12px", borderRadius: "6px", border: "1px solid #d5cfc4", backgroundColor: "#faf9f6", fontSize: "14px", boxSizing: "border-box" }}
+              />
             </div>
 
             <div>
-              <label style={{ fontSize: "12px", color: "#4a574c", display: "block", marginBottom: "6px", letterSpacing: "0.05em" }}>生年月日</label>
-              <input type="date" name="birth_date" required style={{ width: "100%", padding: "12px", borderRadius: "4px", border: "1px solid #d5cfc4", backgroundColor: "#faf9f6", color: "#2b332c", boxSizing: "border-box", fontSize: "14px", fontFamily: "sans-serif" }} />
+              <label style={{ display: "block", fontSize: "13px", marginBottom: "6px", color: "#4a574c" }}>生年月日</label>
+              <input
+                type="date"
+                required
+                value={birthDate}
+                onChange={(e) => setBirthDate(e.target.value)}
+                style={{ width: "100%", padding: "12px", borderRadius: "6px", border: "1px solid #d5cfc4", backgroundColor: "#faf9f6", fontSize: "14px", boxSizing: "border-box" }}
+              />
             </div>
 
             <div>
-              <label style={{ fontSize: "12px", color: "#4a574c", display: "block", marginBottom: "6px", letterSpacing: "0.05em" }}>出生時間（分かれば）</label>
-              <input type="time" name="birth_time" style={{ width: "100%", padding: "12px", borderRadius: "4px", border: "1px solid #d5cfc4", backgroundColor: "#faf9f6", color: "#2b332c", boxSizing: "border-box", fontSize: "14px", fontFamily: "sans-serif" }} />
+              <label style={{ display: "block", fontSize: "13px", marginBottom: "6px", color: "#4a574c" }}>生まれた時間（任意）</label>
+              <input
+                type="time"
+                value={birthTime}
+                onChange={(e) => setBirthTime(e.target.value)}
+                style={{ width: "100%", padding: "12px", borderRadius: "6px", border: "1px solid #d5cfc4", backgroundColor: "#faf9f6", fontSize: "14px", boxSizing: "border-box" }}
+              />
             </div>
 
             <div>
-              <label style={{ fontSize: "12px", color: "#4a574c", display: "block", marginBottom: "6px", letterSpacing: "0.05em" }}>性別</label>
-              <select name="gender" style={{ width: "100%", padding: "12px", borderRadius: "4px", border: "1px solid #d5cfc4", backgroundColor: "#faf9f6", color: "#2b332c", boxSizing: "border-box", fontSize: "14px", fontFamily: "sans-serif" }}>
+              <label style={{ display: "block", fontSize: "13px", marginBottom: "6px", color: "#4a574c" }}>性別</label>
+              <select
+                value={gender}
+                onChange={(e) => setGender(e.target.value)}
+                style={{ width: "100%", padding: "12px", borderRadius: "6px", border: "1px solid #d5cfc4", backgroundColor: "#faf9f6", fontSize: "14px", boxSizing: "border-box" }}
+              >
                 <option value="女性">女性</option>
                 <option value="男性">男性</option>
+                <option value="その他">その他</option>
               </select>
             </div>
 
-            <button type="submit" disabled={loading} style={{ marginTop: "10px", backgroundColor: "#2d4030", color: "#ffffff", padding: "14px", border: "none", borderRadius: "4px", fontSize: "15px", cursor: "pointer", letterSpacing: "0.1em", transition: "background 0.3s" }}>
-              {loading ? "診断中..." : "本質タイプを診断する ➔"}
+            <button
+              type="submit"
+              disabled={loading}
+              style={{ marginTop: "10px", padding: "14px", backgroundColor: "#2d4030", color: "#ffffff", border: "none", borderRadius: "6px", fontSize: "15px", fontWeight: "bold", cursor: "pointer" }}
+            >
+              {loading ? "診断中..." : "診断する"}
+            </button>
+          </form>
+        ) : (
+          <div style={{ textAlign: "center" }}>
+            <h2 style={{ fontSize: "18px", color: "#2d4030", marginBottom: "10px" }}>{result.name} 様の診断結果</h2>
+            <div style={{ backgroundColor: "#faf9f6", padding: "20px", borderRadius: "8px", border: "1px solid #e8e4db", marginBottom: "20px" }}>
+              <span style={{ fontSize: "12px", color: "#6b7a6d" }}>あなたの本質タイプ</span>
+              <h3 style={{ fontSize: "28px", color: "#2d4030", margin: "10px 0" }}>【 {result.elementType} 】</h3>
+              <p style={{ fontSize: "14px", fontWeight: "bold", color: "#4a574c" }}>{result.masterInfo?.short_image || ""}</p>
+              <p style={{ fontSize: "13px", color: "#555", lineHeight: "1.7", textAlign: "left", marginTop: "15px" }}>
+                {result.masterInfo?.description || "まっすぐで芯のある素晴らしい質を持っています。"}
+              </p>
+            </div>
+
+            <button
+              onClick={() => setResult(null)}
+              style={{ padding: "10px 20px", backgroundColor: "transparent", border: "1px solid #2d4030", color: "#2d4030", borderRadius: "6px", cursor: "pointer", fontSize: "13px" }}
+            >
+              もう一度診断する
             </button>
           </div>
-        </form>
-      ) : (
-        <div style={{ width: "100%", maxWidth: "450px", backgroundColor: "#ffffff", padding: "35px 30px", borderRadius: "12px", border: "1px solid #e2ddd3", boxShadow: "0 10px 30px rgba(0,0,0,0.05)" }}>
-          <p style={{ color: "#6b7a6d", margin: 0, textAlign: "center", fontSize: "13px", letterSpacing: "0.05em" }}>{result.name} 様の本質タイプ</p>
-          <h2 style={{ fontSize: "36px", color: "#2d4030", margin: "12px 0 4px 0", textAlign: "center", fontWeight: "500" }}>
-            【 {result.master.id} 】
-          </h2>
-          <p style={{ textAlign: "center", color: "#8a968b", fontSize: "13px", margin: "0 0 25px 0" }}>（{result.master.name_kana}）</p>
-
-          <div style={{ backgroundColor: "#faf9f6", padding: "20px", borderRadius: "8px", border: "1px solid #e8e4db", margin: "20px 0" }}>
-            <p style={{ color: "#2d4030", fontWeight: "600", fontSize: "13px", marginTop: 0, letterSpacing: "0.05em" }}>🌿 自然界のイメージ</p>
-            <p style={{ color: "#4a574c", fontSize: "13px", lineHeight: "1.7", margin: "6px 0 0 0", fontFamily: "sans-serif" }}>{result.master.short_image}</p>
-            <div style={{ width: "100%", height: "1px", backgroundColor: "#e8e4db", margin: "15px 0" }}></div>
-            <p style={{ color: "#2d4030", fontWeight: "600", fontSize: "13px", letterSpacing: "0.05em" }}>✨ メッセージ</p>
-            <p style={{ color: "#4a574c", fontSize: "13px", lineHeight: "1.8", whiteSpace: "pre-wrap", margin: "6px 0 0 0", fontFamily: "sans-serif" }}>{result.master.description}</p>
-          </div>
-
-          <button onClick={() => setResult(null)} style={{ width: "100%", padding: "12px", backgroundColor: "#faf9f6", border: "1px solid #d5cfc4", color: "#4a574c", borderRadius: "4px", cursor: "pointer", fontSize: "13px" }}>
-            もう一度診断する
-          </button>
-        </div>
-      )}
-    </main>
+        )}
+      </main>
+    </div>
   );
 }
